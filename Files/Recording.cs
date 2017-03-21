@@ -25,17 +25,12 @@
 */
 
 using System;
-using CashCam.Files;
+using System.Collections.Generic;
+using System.Text;
 
-namespace CashCam
+namespace CashCam.Files
 {
-    class Program
+    class Recording
     {
-        static void Main(string[] args)
-        {
-            Console.WriteLine("Hello World!");
-            DiskManager dm = new DiskManager("C:/testmnt/asdf");
-
-        }
     }
 }
