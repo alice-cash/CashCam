@@ -43,8 +43,6 @@ namespace CashCam.Files
         private DriveInfo _workingDrive;
         private DirectoryInfo _workingDirectory;
 
-
-
         public DiskManager(string saveDirectory) : this(new DirectoryInfo(saveDirectory)) { }
 
         public DiskManager(DirectoryInfo saveDirectory): base("DiskManager: " + saveDirectory) { 
@@ -109,7 +107,6 @@ namespace CashCam.Files
         /// <summary>
         /// 
         /// </summary>
-        /// <returns></returns>
         /// <remarks>This is threadsafe and may be asynchronous.</remarks>
         [ThreadSafe(ThreadSafeFlags.ThreadSafeAsynchronous)]
         public void DiskSpaceCheck(Action<object,bool> callback, object CallbackData)

@@ -47,6 +47,9 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
+  <PropertyGroup>
+    <StartupObject>CashCam.Program</StartupObject>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="FFmpeg.AutoGen">
       <HintPath>..\FFmpeg\FFmpeg.AutoGen\FFmpeg.AutoGen\bin\Debug\FFmpeg.AutoGen.dll</HintPath>
@@ -64,12 +67,17 @@
     <Compile Include="Files\DiskManager.cs" />
     <Compile Include="Files\FilenameFormat.cs" />
     <Compile Include="Files\Recording.cs" />
+    <Compile Include="Modules\Debugging.cs" />
     <Compile Include="Percentage.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+    <None Include="Localization\EN-US.lang">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.5.2">
@@ -89,5 +97,6 @@
       <Name>CashLib</Name>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
