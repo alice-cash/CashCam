@@ -40,26 +40,32 @@ using System.Collections.Generic;
 using CashLib.Module;
 using CashLib;
 using Console = CashLib.TConsole;
-
+using CashLib.Localization;
 
 namespace CashCam.Module
 {
-    class Debugging : ModuleLoader
+    class Debugging : IModuleLoader
     {
 
-       public override Version Version
+       public Version Version
         {
             get { return new Version(1, 0, 0, 0); }
         }
 
-        public override string Name
+        public string Name
         {
             get { return "Debugging"; }
         }
 
-        public override void Load()
+        public void Load()
         {
-            Console.SetValue("Debugging_Level", new ConsoleVarable() { ValidCheck = CheckConsoleInput, Value = "0" });
+            Console.SetValue("Debugging_Level",
+                new ConsoleVarable() {
+                    ValidCheck = CheckConsoleInput,
+                    Value = "0",
+                    TabFunction = GetTabCompletionValues,
+                    HelpInfo = DefaultLanguage.Strings.GetString("Debugging_Level_Help"),
+                });
         }
 
         /// <summary>
@@ -79,6 +85,14 @@ namespace CashCam.Module
                 default:
                     return ExecutionState.Failed("Input must be 0, 1, or 2");
             }
+        }
+
+        public TabData GetTabCompletionValues(string line)
+        {
+            //If theres any second or third level data we return no suggestion
+            if (line.Trim().Contains(" "))
+                return new TabData() { Result = false };
+            return new TabData() { Result = true, Line = line, TabStrings = new string[] { "0", "1", "2" } };
         }
     }
 }

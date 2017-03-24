@@ -31,6 +31,8 @@ using CashCam.Files;
 using CashLib.Module;
 using CashLib.Localization;
 using System.Reflection;
+using CashLib;
+using System.Collections.Generic;
 
 namespace CashCam
 {
@@ -38,6 +40,7 @@ namespace CashCam
     {
 
         private static CashLib.Threading.Thread SchedulerThread;
+        private static CashLib.Threading.Thread CameraThread;
         private static CashLib.Tasks.Scheduler Scheduler;
 
         /// <summary>
@@ -73,23 +76,131 @@ namespace CashCam
             ThreadsRunning = true;
 
             _initialize();
-            
+
+            ConsoleLoop();
+
+            ThreadsStopped();
+        }   
+
+        private static void ConsoleLoop()
+        {
+            ConsoleKeyInfo input;
+            ConsoleResponse response;
+            List<string> commandHistory = new List<string>();
+            int commandHistoryPosition = -1;
+            bool newline = false; ;
+            string line = "";
             while (ThreadsRunning)
             {
                 if (_consoleVisible)
                 {
-                    Console.Write("#>");
-                    string line = Console.ReadLine();
-                    var responce = CashLib.TConsole.ProcessLine(line);
-                    Console.WriteLine(responce.Value);
-                } else
+                    commandHistoryPosition = -1;
+                    line = "";
+                    Console.Write("#>{0}", line);
+                    do
+                    {
+                        input = Console.ReadKey(true);
+
+                        if (input.Key == ConsoleKey.UpArrow)
+                        {
+                            if (commandHistory.Count == 0 || commandHistoryPosition == 0)
+                                continue;
+                            if (commandHistoryPosition == -1)
+                            {
+                                commandHistoryPosition = commandHistory.Count - 1;
+                                commandHistory.Add(line);
+                            }
+                            else
+                                commandHistoryPosition--;
+
+                            line = commandHistory[commandHistoryPosition];
+                            ClearWrite("#>{0}", line);
+                        }
+
+                        if (input.Key == ConsoleKey.DownArrow)
+                        {
+                            if (commandHistory.Count == 0 || commandHistoryPosition == -1) continue;
+
+                            commandHistoryPosition++;
+
+                            line = commandHistory[commandHistoryPosition];
+                            ClearWrite("#>{0}", line);
+
+                            if (commandHistoryPosition == commandHistory.Count - 1)
+                            {
+                                commandHistoryPosition = -1;
+                                commandHistory.RemoveAt(commandHistory.Count - 1);
+                            }
+                        }
+
+                        if (input.Key == ConsoleKey.Enter)
+                        { newline = true; }
+                        else if (input.Key == ConsoleKey.Backspace)
+                        {
+                            if (line.Length > 0)
+                            {
+                                line = line.Substring(0, line.Length - 1);
+                                Console.CursorLeft--;
+                                Console.Write(" ");
+                                Console.CursorLeft--;
+                            }
+
+                        }
+                        else
+                        {
+                            newline = false;
+                            if (input.Key == ConsoleKey.Tab)
+                            {
+                                TabData td = TConsole.TabInput(line);
+                                if (td.Result)
+                                {
+                                    Console.WriteLine();
+                                    line = td.Line;
+                                    if (td.TabStrings != null)
+                                        Console.WriteLine(String.Join("\t", td.TabStrings));
+                                    Console.Write("#>{0}", line);
+                                }
+                            }
+                            else
+                            {
+                                if (input.KeyChar == '\0')
+                                    continue;
+                                line += input.KeyChar;
+                                Console.Write(input.KeyChar);
+                            }
+                        }
+                    } while (!newline);
+                    Console.WriteLine();
+                    
+                    //Trim any blany lines from up/down arrows
+                    if (commandHistory.Count != 0 && commandHistory[commandHistory.Count - 1] == "")
+                        commandHistory.RemoveAt(commandHistory.Count - 1);
+
+                    if (line.Trim() != "")
+                    {
+                        //Insert a new line since we ate the newline
+                        commandHistory.Add(line);
+                        response = TConsole.ProcessLine(line);
+                        Console.WriteLine(response.Value);
+                    }
+                }
+                else
                 {
                     System.Threading.Thread.Sleep(1000);
                 }
                 System.Threading.Thread.Yield();
             }
-            ThreadsStopped();
-        }   
+        }
+
+        private static void ClearWrite(string format, params string[] args)
+        {
+            int write = Console.CursorLeft;
+            Console.CursorLeft = 0;
+            for (int i = 0; i < write; i++)
+                Console.Write(' ');
+            Console.CursorLeft = 0;
+            Console.Write(format, args);
+        }
 
         public static void Stop()
         {
@@ -134,8 +245,13 @@ namespace CashCam
             SchedulerThread = new CashLib.Threading.Thread("SchedulerThread");
             SchedulerThread.AddTask(Scheduler);
 
-            SchedulerThread.Start();
-            ThreadsStopped += SchedulerThread.Stop;
+            CameraThread = new CashLib.Threading.Thread("CameraThread");
+            CameraThread.AddTask(new Stream.StreamTask());
+
+            //SchedulerThread.Start();
+            CameraThread.Start();
+            //ThreadsStopped += SchedulerThread.Stop;
+            ThreadsStopped += CameraThread.Stop;
         }
 
         /// <summary>

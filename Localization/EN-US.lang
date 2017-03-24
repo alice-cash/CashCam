@@ -56,3 +56,8 @@ Console_Validation_Failure The text '{1}' is not valid for {0}\n
 # $0 is the text they enterd.
 Console_Unknown_Varable '{0}' Unknown command or variable.
 
+FFMPEG_SAVE_ARGS_Help Configures the FFMPEG Arguments for saved streams.
+FFMPEG_PATH_Help Configures the path to the FFMPEG process.
+Debugging_Level_Help Configures the Debug level.
+Console_Help_Help The help function shows help information for avaliable variables and functions
+
