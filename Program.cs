@@ -252,14 +252,14 @@ namespace CashCam
             DefaultLanguage.InitDefault();
             ModuleInfo.LoadModules(Assembly.GetExecutingAssembly(), true);
 
-            setupQuitFunction();
+            SetupQuitFunction();
 
             Scheduler = new CashLib.Tasks.Scheduler("CashCam Scheduler");
             SchedulerThread = new CashLib.Threading.Thread("SchedulerThread");
             SchedulerThread.AddTask(Scheduler);
 
             CameraThread = new CashLib.Threading.Thread("CameraThread");
-            CameraThread.AddTask(new Stream.StreamTask());
+            CameraThread.AddTask(new Stream.CameraController());
 
             //SchedulerThread.Start();
             CameraThread.Start();
@@ -267,16 +267,16 @@ namespace CashCam
             ThreadsStopped += CameraThread.Stop;
         }
 
-        private static void setupQuitFunction()
+        private static void SetupQuitFunction()
         {
             TConsole.SetFunc("quit", new ConsoleFunction()
             {
-                Function = quitConsoleFunction,
+                Function = QuitConsoleFunction,
                 HelpInfo = DefaultLanguage.Strings.GetString("quit_Help"),
             });
 
         }
-        private static ConsoleResponse quitConsoleFunction(string[] arguments)
+        private static ConsoleResponse QuitConsoleFunction(string[] arguments)
         {
             ThreadsRunning = false;
             return ConsoleResponse.NewSucess("Terminating.");
