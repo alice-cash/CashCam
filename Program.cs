@@ -33,11 +33,17 @@ using CashLib.Localization;
 using System.Reflection;
 using CashLib;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
+using Mono.Unix;
 
 namespace CashCam
 {
     class Program
     {
+
+
+        //Handle for Windows machines
+
 
         private static CashLib.Threading.Thread SchedulerThread;
         private static CashLib.Threading.Thread CameraThread;
@@ -50,6 +56,7 @@ namespace CashCam
         /// </summary>
         public static bool ThreadsRunning { get; set; }
         public static Action ThreadsStopped;
+        public static Action ProgramEnding;
 
         /// <summary>
         /// Determin if the console is visisble.
@@ -78,6 +85,8 @@ namespace CashCam
             _initialize();
 
             ConsoleLoop();
+
+            ProgramEnding?.Invoke();
 
             ThreadsStopped();
         }   
@@ -225,11 +234,13 @@ namespace CashCam
         /// </summary>
         private static void _initialize()
         {
+            _processOSInit();
 
             Debug.Listeners.Clear();
             Trace.Listeners.Clear();
 
-            CashLib.TConsole.Init();
+            TConsole.Init();
+
 
             Debug.Listeners.Add(new ConsoleTraceListener());
             Debug.Listeners.Add(new CashLib.Diagnostics.ConsoleTraceListiner());
@@ -240,6 +251,8 @@ namespace CashCam
 
             DefaultLanguage.InitDefault();
             ModuleInfo.LoadModules(Assembly.GetExecutingAssembly(), true);
+
+            setupQuitFunction();
 
             Scheduler = new CashLib.Tasks.Scheduler("CashCam Scheduler");
             SchedulerThread = new CashLib.Threading.Thread("SchedulerThread");
@@ -253,6 +266,88 @@ namespace CashCam
             //ThreadsStopped += SchedulerThread.Stop;
             ThreadsStopped += CameraThread.Stop;
         }
+
+        private static void setupQuitFunction()
+        {
+            TConsole.SetFunc("quit", new ConsoleFunction()
+            {
+                Function = quitConsoleFunction,
+                HelpInfo = DefaultLanguage.Strings.GetString("quit_Help"),
+            });
+
+        }
+        private static ConsoleResponse quitConsoleFunction(string[] arguments)
+        {
+            ThreadsRunning = false;
+            return ConsoleResponse.NewSucess("Terminating.");
+        }
+
+        private static void _processOSInit()
+        {
+            int os = (int)Environment.OSVersion.Platform;
+            if (os == 4 || os == 6 || os == 128)
+                _processUnixInit();
+            else
+                _processWindowsInit();
+        }
+
+        #region "Windows Stuff"
+        [DllImport("Kernel32")]
+        private static extern bool SetConsoleCtrlHandler(EventHandler handler, bool add);
+
+        private delegate bool EventHandler(CtrlType sig);
+
+        enum CtrlType
+        {
+            CTRL_C_EVENT = 0,
+            CTRL_BREAK_EVENT = 1,
+            CTRL_CLOSE_EVENT = 2,
+            CTRL_LOGOFF_EVENT = 5,
+            CTRL_SHUTDOWN_EVENT = 6
+        }
+
+        private static bool Handler(CtrlType sig)
+        {
+            switch (sig)
+            {
+                case CtrlType.CTRL_C_EVENT:
+                case CtrlType.CTRL_LOGOFF_EVENT:
+                case CtrlType.CTRL_SHUTDOWN_EVENT:
+                case CtrlType.CTRL_CLOSE_EVENT:
+                    ThreadsRunning = false;
+                    ProgramEnding?.Invoke();
+                    return false;
+                default:
+                    return false;
+            }
+        }
+
+        private static void _processWindowsInit()
+        {
+            SetConsoleCtrlHandler(Handler, true);
+        }
+        #endregion
+
+        #region "Unix Stuff"
+        private static System.Threading.Thread UnixSignalThread;
+
+
+        private static void _processUnixInit()
+        {
+            UnixSignal[] signals = new UnixSignal[] {
+                new UnixSignal(Mono.Unix.Native.Signum.SIGTERM),
+                new UnixSignal(Mono.Unix.Native.Signum.SIGABRT),
+                new UnixSignal(Mono.Unix.Native.Signum.SIGINT),
+                new UnixSignal(Mono.Unix.Native.Signum.SIGUSR1)
+            };
+            
+            UnixSignalThread = new System.Threading.Thread(() =>{
+                int index = UnixSignal.WaitAny(signals, -1);
+                ThreadsRunning = false;
+            });           
+        }
+        #endregion
+
 
         /// <summary>
         /// Return the applicaion's version.
