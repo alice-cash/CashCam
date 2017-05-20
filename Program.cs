@@ -58,6 +58,8 @@ namespace CashCam
         public static Action ThreadsStopped;
         public static Action ProgramEnding;
 
+        public static OS CurrentOS { get; private set; }
+
         /// <summary>
         /// Determin if the console is visisble.
         /// </summary>
@@ -88,7 +90,7 @@ namespace CashCam
 
             ProgramEnding?.Invoke();
 
-            ThreadsStopped();
+            ThreadsStopped?.Invoke();
         }   
 
         private static void ConsoleLoop()
@@ -105,10 +107,11 @@ namespace CashCam
                 {
                     commandHistoryPosition = -1;
                     line = "";
-                    Console.Write("#>{0}", line);
+                    System.Console.Write("#>{0}", line);
                     do
                     {
-                        input = Console.ReadKey(true);
+
+                        input = System.Console.ReadKey(true);
 
                         if (input.Key == ConsoleKey.UpArrow)
                         {
@@ -149,9 +152,9 @@ namespace CashCam
                             if (line.Length > 0)
                             {
                                 line = line.Substring(0, line.Length - 1);
-                                Console.CursorLeft--;
-                                Console.Write(" ");
-                                Console.CursorLeft--;
+                                System.Console.CursorLeft--;
+                                System.Console.Write(" ");
+                                System.Console.CursorLeft--;
                             }
 
                         }
@@ -160,14 +163,14 @@ namespace CashCam
                             newline = false;
                             if (input.Key == ConsoleKey.Tab)
                             {
-                                TabData td = TConsole.TabInput(line);
+                                TabData td = CashLib.Console.TabInput(line);
                                 if (td.Result)
                                 {
-                                    Console.WriteLine();
+                                    System.Console.WriteLine();
                                     line = td.Line;
                                     if (td.TabStrings != null)
-                                        Console.WriteLine(String.Join("\t", td.TabStrings));
-                                    Console.Write("#>{0}", line);
+                                        System.Console.WriteLine(string.Join("\t", td.TabStrings));
+                                    System.Console.Write("#>{0}", line);
                                 }
                             }
                             else
@@ -175,11 +178,11 @@ namespace CashCam
                                 if (input.KeyChar == '\0')
                                     continue;
                                 line += input.KeyChar;
-                                Console.Write(input.KeyChar);
+                                System.Console.Write(input.KeyChar);
                             }
                         }
                     } while (!newline);
-                    Console.WriteLine();
+                    System.Console.WriteLine();
                     
                     //Trim any blany lines from up/down arrows
                     if (commandHistory.Count != 0 && commandHistory[commandHistory.Count - 1] == "")
@@ -189,8 +192,8 @@ namespace CashCam
                     {
                         //Insert a new line since we ate the newline
                         commandHistory.Add(line);
-                        response = TConsole.ProcessLine(line);
-                        Console.WriteLine(response.Value);
+                        response = CashLib.Console.ProcessLine(line);
+                        System.Console.WriteLine(response.Value);
                     }
                 }
                 else
@@ -199,16 +202,18 @@ namespace CashCam
                 }
                 System.Threading.Thread.Yield();
             }
+            //We keep this here to ensure this handle is never destroyed.
+            GC.KeepAlive(hr);
         }
 
         private static void ClearWrite(string format, params string[] args)
         {
-            int write = Console.CursorLeft;
-            Console.CursorLeft = 0;
+            int write = System.Console.CursorLeft;
+            System.Console.CursorLeft = 0;
             for (int i = 0; i < write; i++)
-                Console.Write(' ');
-            Console.CursorLeft = 0;
-            Console.Write(format, args);
+                System.Console.Write(' ');
+            System.Console.CursorLeft = 0;
+            System.Console.Write(format, args);
         }
 
         public static void Stop()
@@ -218,14 +223,14 @@ namespace CashCam
 
         static void PrintHelp()
         {
-            Console.WriteLine(string.Format("CashCam Version {0}.{1}.{2}.{3}", Program.Version.Major, Program.Version.Minor, Program.Version.Build, Program.Version.Revision));
-            Console.WriteLine();
-            Console.WriteLine("Usage: {0} [OPTION]", System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName);
-            Console.WriteLine();
-            Console.WriteLine("Options");
-            Console.WriteLine(" -h, --help\t\tPrint this help menu");
-            Console.WriteLine(" -d, --daemon\t\tRun in daemon mode, no console input or output.");
-            Console.WriteLine();
+            System.Console.WriteLine(string.Format("CashCam Version {0}.{1}.{2}.{3}", Program.Version.Major, Program.Version.Minor, Program.Version.Build, Program.Version.Revision));
+            System.Console.WriteLine();
+            System.Console.WriteLine("Usage: {0} [OPTION]", System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName);
+            System.Console.WriteLine();
+            System.Console.WriteLine("Options");
+            System.Console.WriteLine(" -h, --help\t\tPrint this help menu");
+            System.Console.WriteLine(" -d, --daemon\t\tRun in daemon mode, no console input or output.");
+            System.Console.WriteLine();
         }
 
 
@@ -239,7 +244,7 @@ namespace CashCam
             Debug.Listeners.Clear();
             Trace.Listeners.Clear();
 
-            TConsole.Init();
+            CashLib.Console.Init();
 
 
             Debug.Listeners.Add(new ConsoleTraceListener());
@@ -269,7 +274,7 @@ namespace CashCam
 
         private static void SetupQuitFunction()
         {
-            TConsole.SetFunc("quit", new ConsoleFunction()
+            CashLib.Console.SetFunc("quit", new ConsoleFunction()
             {
                 Function = QuitConsoleFunction,
                 HelpInfo = DefaultLanguage.Strings.GetString("quit_Help"),
@@ -284,11 +289,18 @@ namespace CashCam
 
         private static void _processOSInit()
         {
+
             int os = (int)Environment.OSVersion.Platform;
             if (os == 4 || os == 6 || os == 128)
+            {
+                CurrentOS = OS.Linux;
                 _processUnixInit();
+            }
             else
+            {
+                CurrentOS = OS.Windows;
                 _processWindowsInit();
+            }
         }
 
         #region "Windows Stuff"
@@ -296,6 +308,7 @@ namespace CashCam
         private static extern bool SetConsoleCtrlHandler(EventHandler handler, bool add);
 
         private delegate bool EventHandler(CtrlType sig);
+        private static EventHandler hr = new EventHandler(Handler);
 
         enum CtrlType
         {
@@ -312,6 +325,7 @@ namespace CashCam
             {
                 case CtrlType.CTRL_C_EVENT:
                 case CtrlType.CTRL_LOGOFF_EVENT:
+
                 case CtrlType.CTRL_SHUTDOWN_EVENT:
                 case CtrlType.CTRL_CLOSE_EVENT:
                     ThreadsRunning = false;
@@ -324,7 +338,8 @@ namespace CashCam
 
         private static void _processWindowsInit()
         {
-            SetConsoleCtrlHandler(Handler, true);
+            // Use interop to set a console control handler.
+            SetConsoleCtrlHandler(hr, true);
         }
         #endregion
 

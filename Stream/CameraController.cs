@@ -4,9 +4,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using CashLib.Threading;
+using CashLib;
 
 namespace CashCam.Stream
 {
+    [ThreadSafe(ThreadSafeFlags.ThreadUnsafe)]
     class CameraController : IThreadTask
     {
         public IPCamTask Camera1;
@@ -28,6 +30,8 @@ namespace CashCam.Stream
                 Camera1.CheckTask();
                 NextRun = DateTime.Now.AddSeconds(5);
             }
+            Camera1.ReadError();
+            Camera1.ReadOutput();
         }
 
         private void KillCameras()

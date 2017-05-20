@@ -39,7 +39,7 @@ using System;
 using System.Collections.Generic;
 using CashLib.Module;
 using CashLib;
-using Console = CashLib.TConsole;
+using Console = CashLib.Console;
 using CashLib.Localization;
 
 namespace CashCam.Module
@@ -57,6 +57,16 @@ namespace CashCam.Module
             get { return "Debugging"; }
         }
 
+        private string Filename = "Debug.ini";
+
+        public enum DebugLevel
+        {
+            Info = 0,
+            Message = 1,
+            Debug = 2
+            
+        }
+
         public void Load()
         {
             Console.SetValue("Debugging_Level",
@@ -66,6 +76,41 @@ namespace CashCam.Module
                     TabFunction = GetTabCompletionValues,
                     HelpInfo = DefaultLanguage.Strings.GetString("Debugging_Level_Help"),
                 });
+            Console.ProcessFile(Filename);
+            Program.ProgramEnding += Save;
+
+        }
+
+        private void Save()
+        {
+            //We have 1 camera we are saving.
+            List<string> VariablesToSave = new List<string>()
+                {
+                    "Debugging_Level",
+                };
+
+            Console.SaveToFile(Filename, VariablesToSave.ToArray());
+        }
+
+
+        public static void DebugLog(DebugLevel level, string message, params string[] format)
+        {
+            if (CurrentLevel(Console.GetVariable("Debugging_Level").Value) >= level)
+                Console.WriteLine(message, format);
+        }
+
+        private static DebugLevel CurrentLevel(string value)
+        {
+            switch (value)
+            {
+                case "0":
+                    return DebugLevel.Info;
+                case "1":
+                    return DebugLevel.Message;
+                case "2":
+                    return DebugLevel.Debug;
+            }
+            return DebugLevel.Info;
         }
 
         /// <summary>

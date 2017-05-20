@@ -64,9 +64,10 @@
   <ItemGroup>
     <Compile Include="Files\DiskManager.cs" />
     <Compile Include="Files\FilenameFormat.cs" />
-    <Compile Include="Files\Recording.cs" />
+    <Compile Include="Files\RecordingManager.cs" />
     <Compile Include="Modules\Debugging.cs" />
     <Compile Include="Modules\Variables.cs" />
+    <Compile Include="OS.cs" />
     <Compile Include="Percentage.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
