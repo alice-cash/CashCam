@@ -62,10 +62,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Files\DiskController.cs" />
     <Compile Include="Files\DiskManager.cs" />
-    <Compile Include="Files\FilenameFormat.cs" />
-    <Compile Include="Files\RecordingManager.cs" />
+    <Compile Include="HTTP\WebServer.cs" />
     <Compile Include="Modules\Debugging.cs" />
+    <Compile Include="Modules\Functions.cs" />
     <Compile Include="Modules\Variables.cs" />
     <Compile Include="OS.cs" />
     <Compile Include="Percentage.cs" />

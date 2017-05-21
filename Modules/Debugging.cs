@@ -63,8 +63,9 @@ namespace CashCam.Module
         {
             Info = 0,
             Message = 1,
-            Debug = 2
-            
+            Debug1 = 2,
+            Debug2 = 3,
+            Debug3 = 4,
         }
 
         public void Load()
@@ -108,7 +109,11 @@ namespace CashCam.Module
                 case "1":
                     return DebugLevel.Message;
                 case "2":
-                    return DebugLevel.Debug;
+                    return DebugLevel.Debug1;
+                case "3":
+                    return DebugLevel.Debug2;
+                case "4":
+                    return DebugLevel.Debug3;
             }
             return DebugLevel.Info;
         }
@@ -126,6 +131,8 @@ namespace CashCam.Module
                 case "0":
                 case "1":
                 case "2":
+                case "3":
+                case "4":
                     return ExecutionState.Succeeded();
                 default:
                     return ExecutionState.Failed("Input must be 0, 1, or 2");
@@ -137,7 +144,7 @@ namespace CashCam.Module
             //If theres any second or third level data we return no suggestion
             if (line.Trim().Contains(" "))
                 return new TabData() { Result = false };
-            return new TabData() { Result = true, Line = line, TabStrings = new string[] { "0", "1", "2" } };
+            return new TabData() { Result = true, Line = line, TabStrings = new string[] { "0", "1", "2", "3", "4" } };
         }
     }
 }

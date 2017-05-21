@@ -47,7 +47,11 @@ namespace CashCam
 
         private static CashLib.Threading.Thread SchedulerThread;
         private static CashLib.Threading.Thread CameraThread;
+        private static CashLib.Threading.Thread DiskThread;
+        private static CashLib.Threading.Thread WebThread;
         private static CashLib.Tasks.Scheduler Scheduler;
+
+        public static DiskManager DiskManager;
 
         /// <summary>
         /// Determin if threads are running. Any threads should run when this is true.
@@ -111,6 +115,7 @@ namespace CashCam
                     do
                     {
 
+
                         input = System.Console.ReadKey(true);
 
                         if (input.Key == ConsoleKey.UpArrow)
@@ -152,7 +157,7 @@ namespace CashCam
                             if (line.Length > 0)
                             {
                                 line = line.Substring(0, line.Length - 1);
-                                System.Console.CursorLeft--;
+                                if (System.Console.CursorLeft > 0) System.Console.CursorLeft--; //Its possible for new lines to cause issues.
                                 System.Console.Write(" ");
                                 System.Console.CursorLeft--;
                             }
@@ -261,15 +266,26 @@ namespace CashCam
 
             Scheduler = new CashLib.Tasks.Scheduler("CashCam Scheduler");
             SchedulerThread = new CashLib.Threading.Thread("SchedulerThread");
-            SchedulerThread.AddTask(Scheduler);
+            SchedulerThread.AddTask(Scheduler);         
+
+            DiskThread = new CashLib.Threading.Thread("DiskThread");
+            DiskThread.AddTask(new DiskController());
 
             CameraThread = new CashLib.Threading.Thread("CameraThread");
             CameraThread.AddTask(new Stream.CameraController());
 
+            WebThread = new CashLib.Threading.Thread("WebThread");
+            WebThread.AddTask(new HTTP.WebServer());
+
             //SchedulerThread.Start();
             CameraThread.Start();
+            DiskThread.Start();
+            WebThread.Start();
+
             //ThreadsStopped += SchedulerThread.Stop;
             ThreadsStopped += CameraThread.Stop;
+            ThreadsStopped += DiskThread.Stop;
+            ThreadsStopped += WebThread.Stop;
         }
 
         private static void SetupQuitFunction()

@@ -56,14 +56,15 @@ Console_Validation_Failure The text '{1}' is not valid for {0}\n
 # $0 is the text they enterd.
 Console_Unknown_Varable '{0}' Unknown command or variable.
 
-FFMPEG_SAVE_ARGS_Help Configures the FFMPEG Arguments for saved streams.
-FFMPEG_STREAM_ARGS_Help Configures the FFMPEG Arguments for streamed streams.
-FFMPEG_PATH_Help Configures the path to the FFMPEG process.
+FFMPEG_Save_ARGS_Help Configures the FFMPEG Arguments for saved streams.
+FFMPEG_Stream_ARGS_Help Configures the FFMPEG Arguments for streamed streams.
+FFMPEG_Path_Help Configures the path to the FFMPEG process.
 
 Camrea_Count_Help Configures the number of cameras.
 Camera_SAVE_PATH Configures the path to the saved video files.
 Camera_SAVE_FORMAT_Help Configures the File save format.
 Camera_URL_Help Configures the URL for the specified camera.
+Camera_Enabled_Help Enabled or disables the specified camera.
 
 Debugging_Level_Help Configures the Debug level.
 

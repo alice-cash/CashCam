@@ -9,6 +9,17 @@ namespace CashCam.Modules
 {
     class Variables : IModuleLoader
     {
+        private string FilenameSettings = "config.ini";
+        private string FilenameCameras = "cameras.ini";
+
+        public const string V_ffmpeg_path = "FFMPEG_Path";
+        public const string V_ffmpeg_stream_args = "FFMPEG_Stream_Args";
+        public const string V_camera_save_path = "Camera_Save_Path";
+        public const string V_camera_count = "Camera_Count";
+        public const string V_camera_url = "Camera[{0}]_URL";
+        public const string V_camera_save_format = "Camera[{0}]_Save_Format";
+        public const string V_camera_enabled = "Camera[{0}]_Enabled";
+
         public Version Version
         {
             get { return new Version(1, 0, 0, 0); }
@@ -19,12 +30,12 @@ namespace CashCam.Modules
             get { return "Variables"; }
         }
 
-        private string Filename = "variables.ini";
 
         public void Load()
         {
             SetupVariables();
-            Console.ProcessFile(Filename);
+            Console.ProcessFile(FilenameSettings);
+            Console.ProcessFile(FilenameCameras);
             Program.ProgramEnding += Save;
         }
 
@@ -33,34 +44,35 @@ namespace CashCam.Modules
             //We have 1 camera we are saving.
             List<string> VariablesToSave = new List<string>()
             {
-                "FFMPEG_PATH",
-                "FFMPEG_STREAM_ARGS",
-                "Camera_SAVE_PATH",
-                "Camrea_Count",
+                V_ffmpeg_path,
+                V_ffmpeg_stream_args,
+                V_camera_save_path,
 
             };
 
-            Console.SaveToFile(Filename, VariablesToSave.ToArray());
+            Console.SaveToFile(FilenameSettings, VariablesToSave.ToArray());
+            Save_cameras();
         }
 
         private void Save_cameras()
         {
             //This should be safe, the CheckConsoleInput won't let us set non-numbers
-            int count = int.Parse(Console.GetVariable("Debugging_Level").Value);
+            int count = int.Parse(Console.GetVariable(V_camera_count).Value);
 
-            List<string> VariablesToSave = new List<string>();
+            List<string> VariablesToSave = new List<string>() { V_camera_count };
 
             for (int id = 0; id < count; id++)
             {
 
                 VariablesToSave.AddRange(new string[]
                 {
-                    "Camera[" + id + "]_URL",
-                    "Camera[" + id + "]_SAVE_FORMAT"
+                    string.Format(V_camera_url,id),
+                    string.Format(V_camera_save_format,id),
+                    string.Format(V_camera_enabled,id),
                 });
             }
 
-            Console.SaveToFile(Filename, VariablesToSave.ToArray());
+            Console.SaveToFile(FilenameCameras, VariablesToSave.ToArray());
         }
 
         private void CheckCameraVariables()
@@ -97,7 +109,10 @@ namespace CashCam.Modules
 
         private void SetupCamera(int id)
         {
-            Console.SetIfNotExsistValue("Camera[" + id + "]_URL", new ConsoleVarable()
+           Console.SetIfNotExsistValue(string.Format(V_camera_enabled, id), ConsoleVarable.OnOffVarable(
+                DefaultLanguage.Strings.GetString("Camera_Enabled_Help")));
+
+            Console.SetIfNotExsistValue(string.Format(V_camera_url, id), new ConsoleVarable()
             {
                 Value = "rtsp://10.0.0.49/live1.264",
                 HelpInfo = DefaultLanguage.Strings.GetString("Camera_URL_Help"),
@@ -105,7 +120,7 @@ namespace CashCam.Modules
 
             if (Program.CurrentOS == OS.Windows)
             {
-                Console.SetIfNotExsistValue("Camera[" + id + "]_SAVE_FORMAT", new ConsoleVarable()
+                Console.SetIfNotExsistValue(string.Format(V_camera_save_format, id), new ConsoleVarable()
                 {
                     Value = "%Y-%m-%d-%H_%M_%S.mp4",
                     HelpInfo = DefaultLanguage.Strings.GetString("Camera_SAVE_FORMAT_Help"),
@@ -113,7 +128,7 @@ namespace CashCam.Modules
             }
             else
             {
-                Console.SetIfNotExsistValue("Camera[" + id + "]_SAVE_FORMAT", new ConsoleVarable()
+                Console.SetIfNotExsistValue(string.Format(V_camera_save_format, id), new ConsoleVarable()
                 {
                     Value = "%Y-%m-%d-%H:%M:%S.mp4",
                     HelpInfo = DefaultLanguage.Strings.GetString("Camera_SAVE_FORMAT_Help"),
@@ -124,7 +139,7 @@ namespace CashCam.Modules
         private void SetupVariables()
         {
 
-            Console.SetValue("Camrea_Count", new ConsoleVarable()
+            Console.SetValue(V_camera_count, new ConsoleVarable()
             {
                 Value = "1",
                 HelpInfo = DefaultLanguage.Strings.GetString("Camrea_Count_Help"),
@@ -135,36 +150,36 @@ namespace CashCam.Modules
 
             if (Program.CurrentOS == OS.Windows)
             {
-                Console.SetValue("FFMPEG_PATH", new ConsoleVarable()
+                Console.SetValue(V_ffmpeg_path, new ConsoleVarable()
                 {
                     Value = Environment.CurrentDirectory + "\\bin\\ffmpeg.exe",
-                    HelpInfo = DefaultLanguage.Strings.GetString("FFMPEG_PATH_Help"),
+                    HelpInfo = DefaultLanguage.Strings.GetString("FFMPEG_Path_Help"),
                 });
-                Console.SetValue("Camera_SAVE_PATH", new ConsoleVarable()
+                Console.SetValue(V_camera_save_path, new ConsoleVarable()
                 {
                     Value = Environment.CurrentDirectory + "\\sv\\cam{0}\\",
-                    HelpInfo = DefaultLanguage.Strings.GetString("Camera_SAVE_PATH_Help"),
+                    HelpInfo = DefaultLanguage.Strings.GetString("Camera_Save_Path_Help"),
                 });
             }
             else
             {
-                Console.SetValue("FFMPEG_PATH", new ConsoleVarable()
+                Console.SetValue(V_ffmpeg_path, new ConsoleVarable()
                 {
                     Value = "/usr/bin/ffmpeg",
-                    HelpInfo = DefaultLanguage.Strings.GetString("FFMPEG_PATH_Help"),
+                    HelpInfo = DefaultLanguage.Strings.GetString("FFMPEG_Path_Help"),
                 });
-                Console.SetValue("Camera_SAVE_PATH", new ConsoleVarable()
+                Console.SetValue(V_camera_save_path, new ConsoleVarable()
                 {
                     Value = "/media/sv/cam{0}/",
-                    HelpInfo = DefaultLanguage.Strings.GetString("FFMPEG_SAVEPATH_Help"),
+                    HelpInfo = DefaultLanguage.Strings.GetString("Camera_Save_Path_Help"),
                 });
             }
 
-            Console.SetValue("FFMPEG_STREAM_ARGS", new ConsoleVarable()
+            Console.SetValue(V_ffmpeg_stream_args, new ConsoleVarable()
             {
                 Value = "-i {0} -an -c copy -map 0 -f segment -segment_time 1800 " +
                 "-segment_atclocktime 1 -segment_format mp4 -strftime 1 {1}",
-                HelpInfo = DefaultLanguage.Strings.GetString("FFMPEG_SAVE_ARGS_Help"),
+                HelpInfo = DefaultLanguage.Strings.GetString("FFMPEG_Save_ARGS_Help"),
             });
         }
 

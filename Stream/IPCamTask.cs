@@ -12,50 +12,40 @@ using Mono.Unix.Native;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using CashCam.Module;
+using CashCam.Modules;
+using CashLib.Exceptions;
 
 namespace CashCam.Stream
 {
     class IPCamTask
     {
         Process ffmpegProcess;
-        int ConfigID;
+        public int ID { get; private set; }
 
         public IPCamTask(int id)
         {
-            ConfigID = id;
+            ID = id;
         }
 
         public void CheckTask()
         {
-            if ((ffmpegProcess == null || ffmpegProcess.HasExited) && Program.ThreadsRunning)
-                StartStream(Console.GetValue("Camera[" + ConfigID + "]_URL").Value,
-                    string.Format(Console.GetValue("Camera_SAVE_PATH").Value, ConfigID) +
-                    Console.GetValue("Camera[" + ConfigID + "]_SAVE_FORMAT").Value);
-  
-        }
-
-        internal void ReadError()
-        {
-            StringBuilder input = new StringBuilder();
-            while (ffmpegProcess.StandardError.Peek() != -1)
-                input.Append(Char.ConvertFromUtf32(ffmpegProcess.StandardError.Read()));
-
-            if (input.Length == 0) return;
-
-            string line = input.ToString();
-            Debugging.DebugLog(Debugging.DebugLevel.Debug, line);
-        }
-
-        internal void ReadOutput()
-        {
-            StringBuilder input = new StringBuilder();
-            while (ffmpegProcess.StandardOutput.Peek() != -1)
-                input.Append(Char.ConvertFromUtf32(ffmpegProcess.StandardOutput.Read()));
-
-            if (input.Length == 0) return;
-
-            string line = input.ToString();
-            Debugging.DebugLog(Debugging.DebugLevel.Debug, line);
+            ConsoleResponseBoolean variable = Console.GetOnOff(string.Format(Variables.V_camera_enabled, ID));
+            if (variable.State == ConsoleCommandState.Failure)
+                throw new LogicException(string.Format("{0} is not a boolean variable!", Variables.V_camera_enabled));
+            if (variable.Value)
+            {
+                if ((ffmpegProcess == null || ffmpegProcess.HasExited) && Program.ThreadsRunning)
+                    StartStream(Console.GetValue(string.Format(Variables.V_camera_url, ID)).Value,
+                        string.Format(Console.GetValue(Variables.V_camera_save_path).Value, ID) +
+                        Console.GetValue(string.Format(Variables.V_camera_save_format, ID)).Value);
+            } else
+            {
+                if ((ffmpegProcess != null && !ffmpegProcess.HasExited) && Program.ThreadsRunning)
+                {
+                    Console.WriteLine("Killing camera {0}", ID);
+                    Terminate();
+                }
+            }
         }
 
         internal void Terminate()
@@ -63,31 +53,45 @@ namespace CashCam.Stream
             if (ffmpegProcess != null && !ffmpegProcess.HasExited)
             {
                 ffmpegProcess.StandardInput.WriteLine("q");
-                if(!ffmpegProcess.WaitForExit(5000))
+                if (!ffmpegProcess.WaitForExit(5000))
+                {
+                    Console.WriteLine("Camera {0} did not close after 5 seconds, forcefully terminating!", ID);
                     ffmpegProcess.Kill();
+                }
             }
         }
 
         private void StartStream(string URL, string filename)
         {
-            Debugging.DebugLog(Debugging.DebugLevel.Info, "Starting Camera " + ConfigID);
+            Debugging.DebugLog(Debugging.DebugLevel.Info, "Starting Camera " + ID);
 
             if (!new DirectoryInfo(GetDirectory(filename)).Exists)
                 new DirectoryInfo(GetDirectory(filename)).Create();
 
-            Debugging.DebugLog(Debugging.DebugLevel.Debug, "Executing: " + Console.GetValue("FFMPEG_PATH").Value + " " + String.Format(Console.GetValue("FFMPEG_STREAM_ARGS").Value, URL, filename));
+            Debugging.DebugLog(Debugging.DebugLevel.Debug1, "Executing: " + Console.GetValue(Variables.V_ffmpeg_path).Value + " " + String.Format(Console.GetValue("FFMPEG_STREAM_ARGS").Value, URL, filename));
 
             ffmpegProcess = new Process();
-            ffmpegProcess.StartInfo.FileName = Console.GetValue("FFMPEG_PATH").Value;
-            ffmpegProcess.StartInfo.Arguments = String.Format(Console.GetValue("FFMPEG_STREAM_ARGS").Value, URL, filename);
+            ffmpegProcess.StartInfo.FileName = Console.GetValue(Variables.V_ffmpeg_path).Value;
+            ffmpegProcess.StartInfo.Arguments = String.Format(Console.GetValue(Variables.V_ffmpeg_stream_args).Value, URL, filename);
             ffmpegProcess.StartInfo.CreateNoWindow = true;
             ffmpegProcess.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
             ffmpegProcess.StartInfo.UseShellExecute = false;
             ffmpegProcess.StartInfo.RedirectStandardInput = true;
             ffmpegProcess.StartInfo.RedirectStandardError = true;
             ffmpegProcess.StartInfo.RedirectStandardOutput = true;
+
+            ffmpegProcess.OutputDataReceived += (object sender, DataReceivedEventArgs e) => {
+                Debugging.DebugLog(Debugging.DebugLevel.Debug3, e.Data);
+            };
+            ffmpegProcess.ErrorDataReceived += (object sender, DataReceivedEventArgs e) => {
+                Debugging.DebugLog(Debugging.DebugLevel.Debug3, e.Data);
+            };
+
             ffmpegProcess.Start();
+            ffmpegProcess.BeginErrorReadLine();
+            ffmpegProcess.BeginOutputReadLine();
         }
+
 
         /// <summary>
         /// Extracts the URL from the provided file path. 

@@ -35,7 +35,7 @@ namespace CashCam.Files
     /// <summary>
     /// Track and perform required tasks regarding Disk space usage.
     /// </summary>
-    class DiskManager: Invoker
+    class DiskManager : Invoker
     {
         //private Percentage DiskUsage { get; set; }
         public Percentage UsageLimit { get; set; }
@@ -45,7 +45,8 @@ namespace CashCam.Files
 
         public DiskManager(string saveDirectory) : this(new DirectoryInfo(saveDirectory)) { }
 
-        public DiskManager(DirectoryInfo saveDirectory): base("DiskManager: " + saveDirectory) { 
+        public DiskManager(DirectoryInfo saveDirectory) : base("DiskManager: " + saveDirectory)
+        {
             this._workingDirectory = saveDirectory;
             this._workingDrive = GetDrive(_workingDirectory);
         }
@@ -63,41 +64,50 @@ namespace CashCam.Files
              * On Unux based systems however folders are all mounted off of /
              * Due to this we need to check every drive's root path. 
              * For example our system has 3 drives /, /foo/ and /hello/ we want to match /foo/bar then 
-             * we want to match on /foo and not / or /hello/world.
+             * we want to match on /foo and not / or /hello/.
              * */
 
-            DriveInfo[] drives = DriveInfo.GetDrives();
-            int maxDepth = int.MaxValue, depthCounter = 0;
-            DriveInfo matchedDrive = null ;
-            DirectoryInfo tempDirectory;
-            foreach (DriveInfo drive in DriveInfo.GetDrives())
-            {
-                if (drive.IsReady)
-                {
-                    // We do some basic checks, such as if we were given a root directory.
-                    if (path.FullName == drive.RootDirectory.FullName) return drive;
-                    tempDirectory = path;
-                    depthCounter = int.MaxValue;
-                    
-                    //We loop back until we either match the drive root directory or the folder root directory.
-                    //If we detect a folder is a root directory we skip to the next folder.
-                    do
-                    {
-                        tempDirectory = tempDirectory.Parent;
-                        if (tempDirectory.FullName == drive.RootDirectory.FullName)
-                        {
-                            //If max dept is smaller then we don't want to use it
-                            //e.g. / == 2 depth, /foo/ == 1 depth
-                            if (maxDepth > depthCounter)
-                            {
-                                maxDepth = depthCounter;
-                                matchedDrive = drive;
-                            }
-                            break;
-                        }
-                        depthCounter++;
-                    } while (tempDirectory.FullName != tempDirectory.Root.FullName) ;
+            DriveInfo matchedDrive = null;
 
+            if (Program.CurrentOS == OS.Windows)
+            {
+                //On windows GetDrives only gets the drive letters and not folder mounted volumes. This does however make this simple.
+                matchedDrive = new DriveInfo(path.Root.Name);
+            }
+            else
+            {
+                DriveInfo[] drives = DriveInfo.GetDrives();
+                int maxDepth = int.MaxValue, depthCounter = 0;
+                DirectoryInfo tempDirectory;
+                foreach (DriveInfo drive in DriveInfo.GetDrives())
+                {
+                    if (drive.IsReady)
+                    {
+                        // We do some basic checks, such as if we were given a root directory.
+                        if (path.FullName == drive.RootDirectory.FullName) return drive;
+                        tempDirectory = path;
+                        depthCounter = int.MaxValue;
+
+                        //We loop back until we either match the drive root directory or the folder root directory.
+                        //If we detect a folder is a root directory we skip to the next folder.
+                        do
+                        {
+                            tempDirectory = tempDirectory.Parent;
+                            if (tempDirectory.FullName == drive.RootDirectory.FullName)
+                            {
+                                //If max dept is smaller then we don't want to use it
+                                //e.g. / == 2 depth, /foo/ == 1 depth
+                                if (maxDepth > depthCounter)
+                                {
+                                    maxDepth = depthCounter;
+                                    matchedDrive = drive;
+                                }
+                                break;
+                            }
+                            depthCounter++;
+                        } while (tempDirectory.FullName != tempDirectory.Root.FullName);
+
+                    }
                 }
             }
             if (matchedDrive != null) Console.WriteLine(matchedDrive.RootDirectory);
@@ -109,14 +119,31 @@ namespace CashCam.Files
         /// </summary>
         /// <remarks>This is threadsafe and may be asynchronous.</remarks>
         [ThreadSafe(ThreadSafeFlags.ThreadSafeAsynchronous)]
-        public void DiskSpaceCheck(Action<object,bool> callback, object CallbackData)
+        public void DiskSpaceCheck(Action<object, bool> callback, object CallbackData)
         {
             InvokeMethod(() =>
             {
-                Percentage DiskUsage = new Percentage(divisor: _workingDrive.TotalSize, dividend: _workingDrive.TotalFreeSpace);
+                Percentage DiskUsage = new Percentage(dividend: _workingDrive.TotalSize, divisor: _workingDrive.TotalFreeSpace);
 
-                callback(CallbackData, DiskUsage.PercentageDouble > UsageLimit.PercentageDouble);
+                callback(CallbackData, DiskUsage.PercentageDouble < UsageLimit.PercentageDouble);
             });
+        }
+
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <remarks>This is threadsafe and may be asynchronous.</remarks>
+        [ThreadSafe(ThreadSafeFlags.ThreadSafeAsynchronous)]
+        public bool DiskSpaceCheck()
+        {
+            Percentage DiskUsage = new Percentage();
+            SynchronousInvokeMethod(() =>
+            {
+                DiskUsage = new Percentage(dividend: _workingDrive.TotalSize, divisor: _workingDrive.TotalFreeSpace);
+
+            });
+            return DiskUsage.PercentageDouble < UsageLimit.PercentageDouble;
         }
 
         /// <summary>
@@ -130,9 +157,28 @@ namespace CashCam.Files
         {
             InvokeMethod(() =>
             {
-                Percentage DiskUsage = new Percentage(divisor: _workingDrive.TotalSize, dividend: _workingDrive.TotalFreeSpace);
+                Percentage DiskUsage = new Percentage(dividend: _workingDrive.TotalSize, divisor: _workingDrive.TotalFreeSpace);
                 callback(CallbackData, DiskUsage);
             });
         }
+
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="callback"></param>
+        /// <param name="CallbackData"></param>
+        /// <remarks>This is threadsafe and is blocking.</remarks>
+        [ThreadSafe(ThreadSafeFlags.ThreadSafeAsynchronous)]
+        public Percentage SynchronousGetDiskAvaliable()
+        {
+            Percentage DiskUsage = new Percentage();
+            SynchronousInvokeMethod(() =>
+            {
+                DiskUsage = new Percentage(dividend: _workingDrive.TotalSize, divisor: _workingDrive.TotalFreeSpace);
+            });
+            return DiskUsage;
+        }
+
     }
 }
