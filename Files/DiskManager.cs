@@ -110,7 +110,7 @@ namespace CashCam.Files
                     }
                 }
             }
-            if (matchedDrive != null) Console.WriteLine(matchedDrive.RootDirectory);
+            //if (matchedDrive != null) Console.WriteLine(matchedDrive.RootDirectory);
             return matchedDrive;
         }
 

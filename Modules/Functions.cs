@@ -26,7 +26,7 @@ namespace CashCam.Modules
             {
                 Function = Disk,
                 HelpInfo = DefaultLanguage.Strings.GetString("disk_Help"),
-                TabFunction = disk_GetTabCompletionValues
+                TabFunction = Disk_GetTabCompletionValues
             });
         }
 
@@ -51,10 +51,10 @@ namespace CashCam.Modules
 
         }
 
-        private TabData disk_GetTabCompletionValues(string line)
+        private TabData Disk_GetTabCompletionValues(string line)
         {
             string[] split = line.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-            string subLine = "";
+           // string subLine = "";
 
             if (split.Length == 1)
                 return new TabData() { Line = line, Result = true, TabStrings = new string[] { "Free", "Limit" } };

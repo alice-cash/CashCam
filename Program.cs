@@ -35,6 +35,7 @@ using CashLib;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using Mono.Unix;
+using CashCam.Stream;
 
 namespace CashCam
 {
@@ -52,6 +53,8 @@ namespace CashCam
         private static CashLib.Tasks.Scheduler Scheduler;
 
         public static DiskManager DiskManager;
+
+        public static IPCamStreamRepeater CameraRepater;
 
         /// <summary>
         /// Determin if threads are running. Any threads should run when this is true.
@@ -276,6 +279,7 @@ namespace CashCam
 
             WebThread = new CashLib.Threading.Thread("WebThread");
             WebThread.AddTask(new HTTP.WebServer());
+            WebThread.AddTask(new IPCamStreamRepeater());
 
             //SchedulerThread.Start();
             CameraThread.Start();

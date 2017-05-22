@@ -12,9 +12,12 @@ namespace CashCam.HTTP
     {
         private HttpListener _listener = new HttpListener();
 
+        private List<WebClient> clients = new List<WebClient>();
+        private List<WebClient> toRemove = new List<WebClient>();
+
         public WebServer()
         {
-
+            
         }
 
         public void RunTask()
@@ -27,27 +30,24 @@ namespace CashCam.HTTP
                 try
                 {
                     context = _listener.EndGetContext(result);
+                    clients.Add(new WebClient(context));
                 }
                 catch { return; }
-
-                byte[] buffer = Encoding.UTF8.GetBytes("<html><head><title> CashCam Camera</ title></ head><body></ body></ html>");
-                try
-                {
-                    context.Response.ContentLength64 = buffer.Length;
-                    context.Response.OutputStream.Write(buffer, 0, buffer.Length);
-                }
-                finally
-                {
-                    context.Response.OutputStream.Close();
-                }
             }, _listener);
 
-            while (asynccontext.AsyncWaitHandle.WaitOne(100) && !asynccontext.IsCompleted)
+            do
             {
-                if (!Program.ThreadsRunning)
-                    return;
+                if (!Program.ThreadsRunning) return;
+
+                toRemove.Clear();
+                foreach (WebClient client in clients)
+                    if (client.Poll())
+                        toRemove.Add(client);
+                foreach (WebClient client in toRemove)
+                    clients.Remove(client);
+
                 System.Threading.Thread.Yield();
-            }
+            } while (asynccontext.AsyncWaitHandle.WaitOne(10) && !asynccontext.IsCompleted);
 
         }
 

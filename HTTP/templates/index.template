@@ -1,0 +1,9 @@
+﻿<html>
+  <head>
+    <title>CashCam Camera</title>
+  </head>
+  <body>
+    <h1>Camera Index</h1>
+    <a href='/stream'>/stream</a>
+  </body>
+</html>

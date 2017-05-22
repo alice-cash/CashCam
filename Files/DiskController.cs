@@ -41,7 +41,7 @@ namespace CashCam.Files
     {
         DateTime NextRun;
         public DiskManager Manager { get; private set; }
-               
+
 
         public DiskController()
         {
@@ -50,8 +50,8 @@ namespace CashCam.Files
 
         public void Start()
         {
-            Manager = new DiskManager(Console.GetValue(Variables.V_camera_save_path).Value);
-            Manager.UsageLimit = new Percentage(50, 100);
+            Manager = new DiskManager(Console.GetValue(Variables.V_camera_save_path).Value)
+            { UsageLimit = new Percentage(50, 100) };
             Program.DiskManager = Manager;
         }
 
@@ -66,7 +66,8 @@ namespace CashCam.Files
             if (NextRun <= DateTime.Now)
             {
 
-                Manager.DiskSpaceCheck((object unused, bool isOver) => {
+                Manager.DiskSpaceCheck((object unused, bool isOver) =>
+                {
                     if (isOver)
                     {
                         DoDiskCleanup();
@@ -82,7 +83,7 @@ namespace CashCam.Files
             int count = int.Parse(Console.GetValue(Variables.V_camera_count).Value);
             List<FileInfo> list = new List<FileInfo>();
 
-            for(int id = 0; id < count; id++)
+            for (int id = 0; id < count; id++)
             {
                 list.AddRange(new DirectoryInfo(string.Format(Console.GetValue(Variables.V_camera_save_path).Value, id)).GetFiles());
             }

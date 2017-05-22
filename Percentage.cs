@@ -19,7 +19,7 @@ namespace CashCam
             this.Dividend = dividend;
         }
 
-        public string ToString()
+        public override string ToString()
         {
             return Divisor + " / " + Dividend + " = " + (PercentageFloat * 100) + "%";
         }
