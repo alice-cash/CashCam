@@ -15,7 +15,7 @@ namespace CashCam.Stream
     [ThreadSafe(ThreadSafeFlags.ThreadUnsafe)]
     class CameraController : IThreadTask
     {
-        public List<IPCamTask> Cameras;
+        public List<IPCamSaveTask> Cameras;
         DateTime NextRun;
         int knownCount = 0;
 
@@ -27,15 +27,15 @@ namespace CashCam.Stream
         public void Start()
         {
 
-            Cameras = new List<IPCamTask>();
+            Cameras = new List<IPCamSaveTask>();
 
-            //Count is protected from having non numurical values so if this fails look elsewhere
+            // Count is protected from having non numurical values so if this fails look elsewhere
             int count = int.Parse(Console.GetValue(Variables.V_camera_count).Value);
             knownCount = count;
 
             for (int id = 0; id < count; id++)
             {
-                IPCamTask camera = new IPCamTask(id);
+                IPCamSaveTask camera = new IPCamSaveTask(id);
                 Cameras.Add(camera);
             }
 
@@ -53,7 +53,7 @@ namespace CashCam.Stream
         {
             if (NextRun <= DateTime.Now)
             {
-                //Count is protected from having non numurical values so if this fails look elsewhere
+                // Count is protected from having non numurical values so if this fails look elsewhere
                 int count = int.Parse(Console.GetValue(Variables.V_camera_count).Value);
                 if (count != knownCount)
                 {
@@ -62,24 +62,24 @@ namespace CashCam.Stream
                         Console.WriteLine("{0} new cameras detected!", count - knownCount);
                         for (int id = knownCount; id < count; id++)
                         {
-                            IPCamTask camera = new IPCamTask(id);
+                            IPCamSaveTask camera = new IPCamSaveTask(id);
                             Cameras.Add(camera);
                         }
                     }
                     else
                     {
                         Console.WriteLine("{0} cameras removed!", knownCount - count);
-                        List<IPCamTask> toRemove = new List<IPCamTask>();
-                        foreach (IPCamTask cam in Cameras)
+                        List<IPCamSaveTask> toRemove = new List<IPCamSaveTask>();
+                        foreach (IPCamSaveTask cam in Cameras)
                             if (cam.ID >= count)
                                 toRemove.Add(cam);
-                        foreach (IPCamTask cam in toRemove)
+                        foreach (IPCamSaveTask cam in toRemove)
                             Cameras.Remove(cam);
                     }
                     knownCount = count;
                 }
 
-                foreach (IPCamTask cam in Cameras)
+                foreach (IPCamSaveTask cam in Cameras)
                 {
                     cam.CheckTask();
                 }
@@ -90,7 +90,7 @@ namespace CashCam.Stream
 
         private void KillCameras()
         {
-            foreach (IPCamTask cam in Cameras)
+            foreach (IPCamSaveTask cam in Cameras)
                 cam.Terminate();
         }
     }
