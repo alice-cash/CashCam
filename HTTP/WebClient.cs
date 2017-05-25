@@ -76,10 +76,10 @@ namespace CashCam.HTTP
 
                     if (Program.CameraManager.GetGamera(0) != null && Program.CameraManager.GetGamera(0).StreamEnabled())
                     {
-                        context.Response.KeepAlive = true;
-                        context.Response.SendChunked = true;
                         context.Response.ContentType = "application/ogg";
-                        Program.CameraManager.GetGamera(0).StreamTask.Repeater.AddStream(context.Response.OutputStream);
+                        context.Response.SendChunked = true;
+                        context.Response.KeepAlive = true;
+                        Program.CameraManager.GetGamera(0).StreamTask.Repeater.AddStream(context);
                     }
                     else
                     {
@@ -92,6 +92,7 @@ namespace CashCam.HTTP
                         context.Response.StatusCode = 404;
                         context.Response.ContentLength64 = buffer.Length;
                         context.Response.OutputStream.Write(buffer, 0, buffer.Length);
+                        context.Response.OutputStream.Close();
 
                     }
 
@@ -99,7 +100,6 @@ namespace CashCam.HTTP
             }
             finally
             {
-                context.Response.OutputStream.Close();
             }
         }
 

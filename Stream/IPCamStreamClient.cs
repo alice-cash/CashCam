@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -8,14 +9,14 @@ namespace CashCam.Stream
 {
     class IPCamStreamClient
     {
-        public System.IO.Stream ClientStream;
+        public HttpListenerContext ClientStream;
         public bool SentHeader;
         public int ID { get; private set; }
 
         private static Random r = new Random();
 
 
-        public IPCamStreamClient(System.IO.Stream client)
+        public IPCamStreamClient(HttpListenerContext client)
         {
             ClientStream = client;
             SentHeader = false;
