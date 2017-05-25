@@ -20,10 +20,13 @@ namespace CashCam.HTTP
             
         }
 
+
         public void RunTask()
         {
             if (!_listener.IsListening) return;
 
+
+            
             var asynccontext = _listener.BeginGetContext((IAsyncResult result) =>
             {
                 HttpListenerContext context;
@@ -32,7 +35,8 @@ namespace CashCam.HTTP
                     context = _listener.EndGetContext(result);
                     clients.Add(new WebClient(context));
                 }
-                catch { return; }
+                catch {  }
+
             }, _listener);
 
             do

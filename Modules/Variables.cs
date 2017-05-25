@@ -12,6 +12,7 @@ namespace CashCam.Modules
         private string FilenameSettings = "config.ini";
         private string FilenameCameras = "cameras.ini";
 
+
         public const string V_ffmpeg_path = "FFMPEG_Path";
         public const string V_ffmpeg_stream_args = "FFMPEG_Default_Stream_Args";
         public const string V_ffmpeg_save_args = "FFMPEG_Default_Save_Args";
@@ -121,6 +122,9 @@ namespace CashCam.Modules
             Console.SetIfNotExsistValue(string.Format(V_camera_stream_enabled, id), ConsoleVarable.OnOffVarable(
                 DefaultLanguage.Strings.GetString("Camera_Stream_Enabled_Help")));
 
+
+
+
             Console.SetIfNotExsistValue(string.Format(V_camera_url, id), new ConsoleVarable()
             {
                 Value = "rtsp://10.0.0.49/live1.264",
@@ -169,8 +173,6 @@ namespace CashCam.Modules
                 ValidCheck = CheckConsoleInput,
             });
 
-            SetupCamera(0);
-
             if (Program.CurrentOS == OS.Windows)
             {
                 Console.SetIfNotExsistValue(V_ffmpeg_path, new ConsoleVarable()
@@ -210,6 +212,9 @@ namespace CashCam.Modules
     "-segment_atclocktime 1 -segment_format mp4 -strftime 1 {1}",
                 HelpInfo = DefaultLanguage.Strings.GetString("FFMPEG_Save_ARGS_Help"),
             });
+
+            SetupCamera(0);
+
         }
 
     }

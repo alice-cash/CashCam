@@ -51,6 +51,7 @@
     <StartupObject>CashCam.Program</StartupObject>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="C5, Version=2.4.5947.17248, Culture=neutral, PublicKeyToken=282361b99ded7e8e" />
     <Reference Include="Mono.Posix, Version=2.0.0.0, Culture=neutral, PublicKeyToken=0738eb9f132ed756, processorArchitecture=MSIL" />
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -75,11 +76,12 @@
     <Compile Include="Percentage.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Stream\Camera.cs" />
     <Compile Include="Stream\IPCamStreamClient.cs" />
     <Compile Include="Stream\IPCamStreamTask.cs" />
     <Compile Include="Stream\IPCamStreamRepeater.cs" />
     <Compile Include="Stream\IPCamSaveTask.cs" />
-    <Compile Include="Stream\CameraController.cs" />
+    <Compile Include="Stream\CameraManager.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
@@ -87,6 +89,9 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="HTTP\templates\index.template">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="HTTP\templates\noStrean.template">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="Localization\EN-US.lang">

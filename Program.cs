@@ -54,7 +54,9 @@ namespace CashCam
 
         public static DiskManager DiskManager;
 
-        public static IPCamStreamRepeater CameraRepater;
+        public static CameraManager CameraManager;
+
+        //public static IPCamStreamRepeater CameraRepater;
 
         /// <summary>
         /// Determin if threads are running. Any threads should run when this is true.
@@ -275,11 +277,12 @@ namespace CashCam
             DiskThread.AddTask(new DiskController());
 
             CameraThread = new CashLib.Threading.Thread("CameraThread");
-            CameraThread.AddTask(new Stream.CameraController());
+            CameraManager = new CameraManager();
+            CameraThread.AddTask(CameraManager);
 
             WebThread = new CashLib.Threading.Thread("WebThread");
             WebThread.AddTask(new HTTP.WebServer());
-            WebThread.AddTask(new IPCamStreamRepeater());
+            //WebThread.AddTask(new IPCamStreamRepeater());
 
             //SchedulerThread.Start();
             CameraThread.Start();

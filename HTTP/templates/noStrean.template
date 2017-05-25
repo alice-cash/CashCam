@@ -1,0 +1,8 @@
+﻿<html>
+  <head>
+    <title>CashCam Camera</title>
+  </head>
+  <body>
+    <h1>Temporarily unavaliable</h1><br><h3> Sorry the stream for camera ${CameraID} is currently offline. Try again soon.</h3>
+  </body>
+</html>

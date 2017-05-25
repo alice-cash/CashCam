@@ -7,112 +7,195 @@ using System.Threading.Tasks;
 using System.IO;
 using System.Net;
 using CashCam.Module;
+using CashLib.Collection;
 
 namespace CashCam.Stream
 {
 
     class IPCamStreamRepeater : IThreadTask
     {
-        private List<IPCamStreamClient> clients;
-        WebResponse WebResponse;
-        System.IO.Stream requestStream;
+        private List<IPCamStreamClient> clients = new List<IPCamStreamClient>();
+        //WebResponse WebResponse;
+        //System.IO.Stream requestStream;
+        System.Net.Sockets.UdpClient Reciever;
+
+
+
         byte[] initalHeader;
         int HeaderState = 0;
-        
-        byte[] currentBlock;
 
-        public IPCamStreamRepeater()
+        byte[] currentBlock;
+        private IPCamStreamTask iPCamStreamTask;
+        private string hostname;
+        private int port;
+
+        private System.Threading.Thread readThread;
+
+
+        private LimitedStack<byte[]> ReadData;
+
+        /*  public IPCamStreamRepeater()
         {
-            Program.CameraRepater = this;
+
+        }*/
+
+        public IPCamStreamRepeater(IPCamStreamTask iPCamStreamTask, string hostname, int port)
+        {
+            this.iPCamStreamTask = iPCamStreamTask;
+            this.hostname = hostname;
+            this.port = port;
+            readThread = new System.Threading.Thread(Thread)
+            { Name = "Read Thread for" + hostname };
+            ReadData = new LimitedStack<byte[]>(20);
+            readThread.Start();
         }
 
         public void AddStream(System.IO.Stream stream)
         {
-            clients.Add(new IPCamStreamClient(stream));
+            IPCamStreamClient client = new IPCamStreamClient(stream);
+
+            try
+            {
+                ClientSendHeaderCheck(client);
+            }
+            catch { return; }
+            clients.Add(client);
         }
 
         public void RunTask()
         {
-            Console.WriteLine("DING");
+            if (!iPCamStreamTask.Parent.StreamEnabled())
+            { Stop(); return; }
+            if (Reciever == null)
+            { Start(); return; }
 
-            if (WebResponse == null || requestStream == null) return;
-            if (!requestStream.CanRead) return;
+            lock (ReadData)
+            {
+                while(ReadData.Count > 0)
+                {
+                    byte[] data = TryGetBlock(ReadData.Pop());
+                    if (data.Length == 0)
+                        continue;
+                    SendToClients(data);
 
-            byte[] data = TryGetBlock();
+                    Console.WriteLine("OUT");
+                }
+            }
 
-            if (data.Length == 0)
-                return;
-
-            if (!HeaderCheck(data))
-                return;
-
-            SentToClients(data);
+            
         }
 
         private bool HeaderCheck(byte[] data)
         {
-            if (HeaderState == 2) return true;
+           /* if (data.Length > 6 && data[5] == 0x02)
+            {
+                Console.WriteLine("BING BONG");
+                Console.WriteLine("BING BONG");
+                Console.WriteLine("BING BONG");
+                initalHeader = data;
+                return false;
+            }
+            else return true;*/
 
-            if(HeaderState == 0)
+            if (HeaderState == 5) return true;
+
+            if (HeaderState == 0)             //byte 6 == 0x02
                 initalHeader = data;
 
-            if (HeaderState == 1)
+            if (HeaderState > 0)
                 initalHeader = AppendData(initalHeader, data);
 
             HeaderState++;
-            //Debugging.DebugLog(Debugging.DebugLevel.Debug1, "Header State: " + HeaderState);
             return false;
         }
 
-        private byte[] TryGetBlock()
+
+        private void Thread()
         {
-            byte[] data = new byte[8192];
-            int count = requestStream.Read(data, 0, data.Length);
-            byte[] workingBlock;
-            int HeaderPos = GetOggSHeader(data);
-
-            //Debugging.DebugLog(Debugging.DebugLevel.Debug1, "Read header at " + HeaderPos);
-
-
-            // If we start out with a header we try and get the next one, then continue on from there.
-            if (HeaderPos == 0)
+            IPEndPoint RemoteIpEndPoint = new IPEndPoint(IPAddress.Parse(hostname), port);
+        
+            while (Program.ThreadsRunning)
             {
-                HeaderPos = GetOggSHeader(data, HeaderPos + 1);
+                if (iPCamStreamTask.Parent.StreamEnabled())
+                {
+                    if(Reciever != null)
+                    {
+                        //Reciever.Client.ReceiveTimeout = 1000;
+                        try
+                        {
+                            byte[] data = Reciever.Receive(ref RemoteIpEndPoint);
+                            if (data.Length == 0) continue;
 
-                //Debugging.DebugLog(Debugging.DebugLevel.Debug1, "Read header marker at 0, new header at " + HeaderPos);
+                            if (!HeaderCheck(data))
+                                continue;
+
+                            lock (ReadData)
+                            {
+                                ReadData.Push(data);
+                            }
+                            //Console.WriteLine("IN");
+                        }
+                        catch { }
+                    }
+                    System.Threading.Thread.Yield();
+
+                   /* if (WebResponse != null && requestStream != null && requestStream.CanRead)
+                    {
+                        try
+                        {
+                            byte[] data = TryGetBlock();
+                            if (data.Length == 0) continue;
+
+                            if (!HeaderCheck(data))
+                                continue;
+
+                            lock (ReadData)
+                            {
+                                ReadData.Push(data);
+                            }
+                            Console.WriteLine("IN");
+                        }
+                        catch { }
+                    }*/
+
+                }
+
             }
+        }
+
+
+        private byte[] TryGetBlock(byte[] data)
+        {
+            
+            byte[] returnDataBlock;
+
+            if (data.Length == 0)
+                return new byte[0];
+
+            currentBlock = AppendData(currentBlock, data, data.Length);
+
+            int HeaderPos = GetOggSHeader(currentBlock, 1);
 
             // If there is no header then the current block is not finished.
             if (HeaderPos == -1)
-            {
-                // New Array = Old Array + Current Array
-                currentBlock = AppendData(currentBlock, data, count);
-
-                //Debugging.DebugLog(Debugging.DebugLevel.Debug1, "Did not get new header. Current data length is " + currentBlock.Length);
-
                 return new byte[0];
-            }
 
             // Append all of the data up to the next OggS to the previously saved data and send it out.
+            returnDataBlock = new byte[HeaderPos];
 
-            workingBlock = AppendData(currentBlock, data, HeaderPos);
+            Array.Copy(currentBlock, returnDataBlock, HeaderPos);
 
-            // Save all of the rest of the unsed data.
-            currentBlock = new byte[count - HeaderPos];
-            Array.Copy(data, HeaderPos, currentBlock, 0, count - HeaderPos);
+            // Save all of the rest of the unsed data and shift it forward.
+            byte[] tmpBlock = new byte[currentBlock.Length - HeaderPos];
+            Array.Copy(currentBlock, HeaderPos, tmpBlock, 0, currentBlock.Length - HeaderPos);
+            currentBlock = tmpBlock;
 
-            //Debugging.DebugLog(Debugging.DebugLevel.Debug1, workingBlock.Length + " bytes of data retrieved,  " + (count - HeaderPos) + " bytes saved");
-            Console.WriteLine("========" + (workingBlock.Length + HeaderPos) + "================================================");
+            Console.WriteLine("========" + (returnDataBlock.Length + HeaderPos) + "================================================");
             //Console.WriteLine(BitConverter.ToString(workingBlock).Replace("-", ""));
-            Console.WriteLine(tmp_dddREMOVEME(ASCIIEncoding.ASCII.GetString(workingBlock)));
 
-            // return the previously clipped data
-            return workingBlock;
-        }
-
-        private string tmp_dddREMOVEME(string s)
-        {
+            string s = ASCIIEncoding.ASCII.GetString(returnDataBlock, 0, returnDataBlock.Length);
             var sb = new StringBuilder();
+
             foreach (char c in s)
             {
                 if (32 <= c && c <= 126)
@@ -121,36 +204,44 @@ namespace CashCam.Stream
                 }
                 else
                 {
-                    sb.AppendFormat(".");
+                    sb.Append(".");
                 }
             }
-            return sb.ToString();
+            Console.WriteLine(sb.ToString().Substring(0,512));
+
+            // return the previously clipped data
+            return returnDataBlock;
         }
 
-        private void SentToClients(byte[] data)
+
+        private void SendToClients(byte[] data)
         {
             List<IPCamStreamClient> toRemove = new List<IPCamStreamClient>();
 
             foreach (IPCamStreamClient client in clients)
             {
-                if (!client.SentHeader)
-                {
-                    try
-                    {
-                        client.ClientStream.Write(initalHeader, 0, initalHeader.Length);
-                    }
-                    catch { toRemove.Add(client); }
-                    client.Sent();
-                }
-
                 try
                 {
-                    client.ClientStream.Write(data, 0, data.Length);
+                    if (ClientSendHeaderCheck(client))
+                        client.ClientStream.Write(data, 0, data.Length);
+                    client.ClientStream.Flush();
                 }
                 catch { toRemove.Add(client); }
             }
             foreach (IPCamStreamClient client in toRemove)
                 clients.Remove(client);
+        }
+
+        private bool ClientSendHeaderCheck(IPCamStreamClient client)
+        {
+            if (client.SentHeader) return true;
+            if (initalHeader == null) return false;
+            if (HeaderState != 5) return false;
+
+            client.ClientStream.Write(initalHeader, 0, initalHeader.Length);
+            client.SentHeader = true;
+
+            return true;
         }
 
         private byte[] AppendData(byte[] a, byte[] b)
@@ -161,7 +252,7 @@ namespace CashCam.Stream
         private byte[] AppendData(byte[] a, byte[] b, int b_length)
         {
             byte[] newData = new byte[a.Length + b_length];
-            Array.Copy(a, 0, newData, 0, a.Length);
+            Array.Copy(a, newData, a.Length);
             Array.Copy(b, 0, newData, a.Length, b_length);
             return newData;
         }
@@ -170,11 +261,11 @@ namespace CashCam.Stream
         {
             if (limit == -1) limit = data.Length;
             //string s = ASCIIEncoding.ASCII.GetString(data, 0, limit);
-           // return s.IndexOf("OggS", offset + 1);
-            
+            // return s.IndexOf("OggS", offset + 1);
+
             for (int i = offset; i < limit - 4; i++)
             {
-                if (data[i] == 'O' && data[i + 1] == 'g' &&  data[i + 2] == 'g' && data[i + 3] == 'S')
+                if (data[i] == 'O' && data[i + 1] == 'g' && data[i + 2] == 'g' && data[i + 3] == 'S')
                     return i;
                 // OggS
             }
@@ -183,21 +274,24 @@ namespace CashCam.Stream
 
         public void Start()
         {
-            StopClients();
-            clients = new List<IPCamStreamClient>();
-            HttpWebRequest request = HttpWebRequest.CreateHttp("http://10.0.0.100/cameras/cam1.ogg");
-            WebResponse = request.GetResponse();
-            requestStream = WebResponse.GetResponseStream();
-
+            Stop();
+            //  clients = new List<IPCamStreamClient>();
+            //HttpWebRequest request = HttpWebRequest.CreateHttp(hostname);
+            try { Reciever = new System.Net.Sockets.UdpClient(port); } catch { Reciever = null; }
+            
             currentBlock = new byte[0];
         }
 
         public void Stop()
         {
             StopClients();
-            
-            try { requestStream.Close(); } catch { }
-            try { WebResponse.Close(); } catch { }
+
+            try { Reciever.Close(); } catch { }
+            //try { requestStream?.Close(); } catch { }
+            //try { WebResponse?.Close(); } catch { }
+            // requestStream = null;
+            // WebResponse = null;
+            Reciever = null;
         }
 
         private void StopClients()

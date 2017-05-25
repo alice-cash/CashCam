@@ -27,8 +27,9 @@ namespace CashCam.Stream
             ID = id;
         }
 
-        public void CheckTask()
+        public void CheckTask(bool LongRun)
         {
+            if (!LongRun) return;
             ConsoleResponseBoolean variable = Console.GetOnOff(string.Format(Variables.V_camera_enabled, ID));
             if (variable.State == ConsoleCommandState.Failure)
                 throw new LogicException(string.Format("{0} is not a boolean variable!", Variables.V_camera_enabled));

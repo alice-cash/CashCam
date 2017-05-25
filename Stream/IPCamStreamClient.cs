@@ -6,20 +6,20 @@ using System.Threading.Tasks;
 
 namespace CashCam.Stream
 {
-    struct IPCamStreamClient
+    class IPCamStreamClient
     {
         public System.IO.Stream ClientStream;
         public bool SentHeader;
+        public int ID { get; private set; }
+
+        private static Random r = new Random();
+
 
         public IPCamStreamClient(System.IO.Stream client)
         {
             ClientStream = client;
             SentHeader = false;
-        }
-
-        internal void Sent()
-        {
-            SentHeader = true;
+            ID = r.Next();
         }
     }
 }

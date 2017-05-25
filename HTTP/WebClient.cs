@@ -31,10 +31,11 @@ namespace CashCam.HTTP
             {
                 ServeRoot();
             }
-            else if(context.Request.Url.LocalPath == "/stream")
+            else if (context.Request.Url.LocalPath == "/stream")
             {
                 ServeStream();
-            } else
+            }
+            else
             {
                 Serve404();
             }
@@ -70,16 +71,35 @@ namespace CashCam.HTTP
                 if (!chunkEnabled)
                 {
                     chunkEnabled = true;
-                    context.Response.KeepAlive = true;
-                    context.Response.SendChunked = true;
-                    context.Response.ContentType = "application/ogg";
-                    Program.CameraRepater.AddStream(context.Response.OutputStream);
-                }
 
+                    //Camera 0
+
+                    if (Program.CameraManager.GetGamera(0) != null && Program.CameraManager.GetGamera(0).StreamEnabled())
+                    {
+                        context.Response.KeepAlive = true;
+                        context.Response.SendChunked = true;
+                        context.Response.ContentType = "application/ogg";
+                        Program.CameraManager.GetGamera(0).StreamTask.Repeater.AddStream(context.Response.OutputStream);
+                    }
+                    else
+                    {
+                        byte[] buffer = Encoding.UTF8.GetBytes(TemplateProcessor.Process(Environment.CurrentDirectory + "\\HTTP\\templates\\noStrean.template", new Dictionary<string, Func<string>>()
+                        {
+                            {"URI" , ()=>{return context.Request.Url.LocalPath; }},
+                            {"CameraID" , ()=>{return "0"; }}
+                        }));
+
+                        context.Response.StatusCode = 404;
+                        context.Response.ContentLength64 = buffer.Length;
+                        context.Response.OutputStream.Write(buffer, 0, buffer.Length);
+
+                    }
+
+                }
             }
             finally
             {
-                
+                context.Response.OutputStream.Close();
             }
         }
 
@@ -99,14 +119,6 @@ namespace CashCam.HTTP
             finally
             {
                 context.Response.OutputStream.Close();
-            }
-        }
-
-        private class host : MarshalByRefObject
-        {
-            public void ProcessRequest(string Path, string query, StreamWriter OutputStream)
-            {
-
             }
         }
     }

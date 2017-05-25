@@ -60,6 +60,7 @@ namespace CashCam.Files
 
         }
 
+
         public void RunTask()
         {
             Manager.PollInvokes();
