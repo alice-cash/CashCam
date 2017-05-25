@@ -27,7 +27,6 @@ namespace CashCam.Stream
         public bool IsRunning { get { return ffmpegProcess != null && !ffmpegProcess.HasExited; } }
 
         private string hostname;
-        private int port;
         private static Random r = new Random();
 
         public Camera Parent;
@@ -36,14 +35,12 @@ namespace CashCam.Stream
         {
             ID = id;
             Parent = parent;
-            hostname = "127.0.0.1";
-            port = r.Next(20000, 29999);
-            Repeater = new IPCamStreamRepeater(this, hostname, port);
+            hostname = "http://127.0.0.1:" + r.Next(20000, 29999);
+            Repeater = new IPCamStreamRepeater(this, hostname);
         }
 
         public void CheckTask(bool LongRun)
         {
-            Repeater.RunTask();
             if (LongRun)
             {
                 ConsoleResponseBoolean variable = Console.GetOnOff(string.Format(Variables.V_camera_stream_enabled, ID));
@@ -64,11 +61,11 @@ namespace CashCam.Stream
                     }
                 }
             }
+            Repeater.RunTask();
         }
 
         internal void Terminate()
         {
-            Repeater?.Stop();
             if (ffmpegProcess != null && !ffmpegProcess.HasExited)
             {
                 ffmpegProcess.StandardInput.WriteLine("q");
@@ -82,14 +79,13 @@ namespace CashCam.Stream
 
         private void StartStream(string URL, string hostname)
         {
-            Repeater?.Start();
             Debugging.DebugLog(Debugging.DebugLevel.Info, "Starting Camera Sttram" + ID);
 
-            Debugging.DebugLog(Debugging.DebugLevel.Debug1, "Executing: " + Console.GetValue(Variables.V_ffmpeg_path).Value + " " + String.Format(Console.GetValue(Variables.V_ffmpeg_stream_args).Value, URL, string.Format("udp://{0}:{1}", hostname, port)));
+             Debugging.DebugLog(Debugging.DebugLevel.Debug1, "Executing: " + Console.GetValue(Variables.V_ffmpeg_path).Value + " " + String.Format(Console.GetValue(Variables.V_ffmpeg_stream_args).Value, URL, hostname));
 
             ffmpegProcess = new Process();
             ffmpegProcess.StartInfo.FileName = Console.GetValue(Variables.V_ffmpeg_path).Value;
-            ffmpegProcess.StartInfo.Arguments = String.Format(Console.GetValue(Variables.V_ffmpeg_stream_args).Value, URL, string.Format("udp://{0}:{1}", hostname, port));
+            ffmpegProcess.StartInfo.Arguments = String.Format(Console.GetValue(Variables.V_ffmpeg_stream_args).Value, URL, hostname);
             ffmpegProcess.StartInfo.CreateNoWindow = true;
             ffmpegProcess.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
             ffmpegProcess.StartInfo.UseShellExecute = false;
