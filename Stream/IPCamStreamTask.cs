@@ -79,6 +79,7 @@ namespace CashCam.Stream
 
         private void StartStream(string URL, string hostname)
         {
+            Repeater.Start();
             Debugging.DebugLog(Debugging.DebugLevel.Info, "Starting Camera Sttram" + ID);
 
              Debugging.DebugLog(Debugging.DebugLevel.Debug1, "Executing: " + Console.GetValue(Variables.V_ffmpeg_path).Value + " " + String.Format(Console.GetValue(Variables.V_ffmpeg_stream_args).Value, URL, hostname));
