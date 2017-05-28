@@ -38,7 +38,7 @@ namespace CashCam.Stream
             Parent = parent;
             hostname = "127.0.0.1";
             port = r.Next(20000, 29999);
-            Repeater = new IPCamStreamRepeater(this, hostname, port);
+            Repeater = new IPCamStreamRepeater(this, "http://" + hostname + ":" + port + "/camera.ogg"); //, port);
         }
 
         public void CheckTask(bool LongRun)
@@ -51,6 +51,7 @@ namespace CashCam.Stream
                     throw new LogicException(string.Format("{0} is not a boolean variable!", Variables.V_camera_stream_enabled));
                 if (variable.Value)
                 {
+                   // if(ffmpegProcess != null && !ffmpegProcess.HasExited) ffmpegProcess.StandardInput.Write("++++++++++++++++++++++++++++++++++++++++++");
                     if ((ffmpegProcess == null || ffmpegProcess.HasExited) && Program.ThreadsRunning)
                         StartStream(Console.GetValue(string.Format(Variables.V_camera_url, ID)).Value,
                             hostname);
@@ -87,11 +88,11 @@ namespace CashCam.Stream
 
             Debugging.DebugLog(Debugging.DebugLevel.Debug1, "Executing: " +
                 Console.GetValue(Variables.V_ffmpeg_path).Value + " " + 
-                String.Format(Console.GetValue(string.Format(Variables.V_camera_stream_args, ID)).Value, URL, string.Format("udp://{0}:{1}", hostname, port)));
+                String.Format(Console.GetValue(string.Format(Variables.V_camera_stream_args, ID)).Value, URL, string.Format("{0}:{1}/camera.ogg", hostname, port)));
 
             ffmpegProcess = new Process();
             ffmpegProcess.StartInfo.FileName = Console.GetValue(Variables.V_ffmpeg_path).Value;
-            ffmpegProcess.StartInfo.Arguments = String.Format(Console.GetValue(string.Format(Variables.V_camera_stream_args, ID)).Value, URL, string.Format("udp://{0}:{1}", hostname, port));
+            ffmpegProcess.StartInfo.Arguments = String.Format(Console.GetValue(string.Format(Variables.V_camera_stream_args, ID)).Value, URL, string.Format("{0}:{1}/camera.ogg", hostname, port));
             ffmpegProcess.StartInfo.CreateNoWindow = true;
             ffmpegProcess.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
             ffmpegProcess.StartInfo.UseShellExecute = false;
@@ -110,7 +111,6 @@ namespace CashCam.Stream
             ffmpegProcess.BeginErrorReadLine();
             ffmpegProcess.BeginOutputReadLine();
 
-            ffmpegProcess.StandardInput.Write("+++++++");
         }
 
 

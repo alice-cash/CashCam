@@ -15,34 +15,32 @@ namespace CashCam.Stream
     class IPCamStreamRepeater : IThreadTask
     {
         private List<IPCamStreamClient> clients = new List<IPCamStreamClient>();
-        //WebResponse WebResponse;
-        //System.IO.Stream requestStream;
-        System.Net.Sockets.UdpClient Reciever;
-
-
-
+        WebResponse WebResponse;
+        System.IO.Stream requestStream;
         byte[] initalHeader;
         int HeaderState = 0;
 
         byte[] currentBlock;
         private IPCamStreamTask iPCamStreamTask;
         private string hostname;
-        private int port;
 
         private System.Threading.Thread readThread;
 
 
         private LimitedStack<byte[]> ReadData;
 
+        /*  public IPCamStreamRepeater()
+        {
 
-        public IPCamStreamRepeater(IPCamStreamTask iPCamStreamTask, string hostname, int port)
+        }*/
+
+        public IPCamStreamRepeater(IPCamStreamTask iPCamStreamTask, string hostname)
         {
             this.iPCamStreamTask = iPCamStreamTask;
             this.hostname = hostname;
-            this.port = port;
             readThread = new System.Threading.Thread(Thread)
             { Name = "Read Thread for" + hostname };
-            ReadData = new LimitedStack<byte[]>(500);
+            ReadData = new LimitedStack<byte[]>(20);
             readThread.Start();
         }
 
@@ -62,17 +60,18 @@ namespace CashCam.Stream
         {
             if (!iPCamStreamTask.Parent.StreamEnabled())
             { Stop(); return; }
-            if (Reciever == null)
+            if (WebResponse == null || requestStream == null || !requestStream.CanRead)
             { Start(); return; }
+            if (!requestStream.CanRead) return;
 
             lock (ReadData)
             {
                 while (ReadData.Count > 0)
                 {
-                    byte[] data = TryGetBlock(ReadData.Pop());
-                    if (data.Length == 0)
-                        continue;
-                    SendToClients(data);
+                    byte[] data = ReadData.Pop();
+
+                    SentToClients(data);
+                    // Console.WriteLine("OUT");
                 }
             }
 
@@ -81,19 +80,12 @@ namespace CashCam.Stream
 
         private bool HeaderCheck(byte[] data)
         {
-            /* if (data.Length > 6 && data[5] == 0x02)
-             {
-                 initalHeader = data;
-                 return false;
-             }
-             else return true;*/
-
             if (HeaderState == 2) return true;
 
-            if (HeaderState == 0)             //byte 6 == 0x02
+            if (HeaderState == 0)
                 initalHeader = data;
 
-            if (HeaderState > 0)
+            if (HeaderState > 1)
                 initalHeader = AppendData(initalHeader, data);
 
             HeaderState++;
@@ -103,18 +95,21 @@ namespace CashCam.Stream
 
         private void Thread()
         {
-            IPEndPoint RemoteIpEndPoint = new IPEndPoint(IPAddress.Parse(hostname), port);
-
             while (Program.ThreadsRunning)
             {
                 if (iPCamStreamTask.Parent.StreamEnabled())
                 {
-                    if (Reciever != null)
+                    if (WebResponse != null && requestStream != null && requestStream.CanRead)
                     {
-                        //Reciever.Client.ReceiveTimeout = 1000;
                         try
                         {
-                            byte[] data = Reciever.Receive(ref RemoteIpEndPoint);
+                            byte[] data = new byte[128];
+                            int count = requestStream.Read(data, 0, data.Length); ;
+                            if (count == 0) continue;
+
+
+                            data = TryGetBlock(data);
+
                             if (data.Length == 0) continue;
 
                             if (!HeaderCheck(data))
@@ -128,26 +123,6 @@ namespace CashCam.Stream
                         }
                         catch { }
                     }
-                    System.Threading.Thread.Yield();
-
-                    /* if (WebResponse != null && requestStream != null && requestStream.CanRead)
-                     {
-                         try
-                         {
-                             byte[] data = TryGetBlock();
-                             if (data.Length == 0) continue;
-
-                             if (!HeaderCheck(data))
-                                 continue;
-
-                             lock (ReadData)
-                             {
-                                 ReadData.Push(data);
-                             }
-                             Console.WriteLine("IN");
-                         }
-                         catch { }
-                     }*/
 
                 }
 
@@ -157,13 +132,15 @@ namespace CashCam.Stream
 
         private byte[] TryGetBlock(byte[] data)
         {
-
+            //byte[] data = new byte[128];
+            //int count = requestStream.Read(data, 0, data.Length);
+            int count = data.Length;
             byte[] returnDataBlock;
 
-            if (data.Length == 0)
+            if (count == 0)
                 return new byte[0];
 
-            currentBlock = AppendData(currentBlock, data, data.Length);
+            currentBlock = AppendData(currentBlock, data, count);
 
             int HeaderPos = GetOggSHeader(currentBlock, 1);
 
@@ -181,7 +158,7 @@ namespace CashCam.Stream
             Array.Copy(currentBlock, HeaderPos, tmpBlock, 0, currentBlock.Length - HeaderPos);
             currentBlock = tmpBlock;
 
-        /*    Console.WriteLine("========" + (returnDataBlock.Length + HeaderPos) + "================================================");
+            //Console.WriteLine("========" + (returnDataBlock.Length + HeaderPos) + "================================================");
             //Console.WriteLine(BitConverter.ToString(workingBlock).Replace("-", ""));
 
             string s = ASCIIEncoding.ASCII.GetString(returnDataBlock, 0, returnDataBlock.Length);
@@ -199,13 +176,13 @@ namespace CashCam.Stream
                 }
             }
             Console.WriteLine(sb.ToString().Substring(0, sb.ToString().Length < 512 ? sb.ToString().Length : 512));
-            */
+
             // return the previously clipped data
             return returnDataBlock;
         }
 
 
-        private void SendToClients(byte[] data)
+        private void SentToClients(byte[] data)
         {
             List<IPCamStreamClient> toRemove = new List<IPCamStreamClient>();
 
@@ -214,7 +191,11 @@ namespace CashCam.Stream
                 try
                 {
                     if (ClientSendHeaderCheck(client))
+                    {
                         client.ClientStream.Response.OutputStream.Write(data, 0, data.Length);
+                        client.ClientStream.Response.OutputStream.Flush();
+                    }
+
                 }
                 catch { toRemove.Add(client); }
             }
@@ -225,8 +206,7 @@ namespace CashCam.Stream
         private bool ClientSendHeaderCheck(IPCamStreamClient client)
         {
             if (client.SentHeader) return true;
-            if (initalHeader == null) return false;
-           // if (HeaderState != 1) return false;
+            if (HeaderState != 2) return false;
 
             client.ClientStream.Response.OutputStream.Write(initalHeader, 0, initalHeader.Length);
             client.SentHeader = true;
@@ -264,11 +244,16 @@ namespace CashCam.Stream
 
         public void Start()
         {
-            Stop();
+            StopClients();
+            if (WebResponse != null) WebResponse.Close();
             //  clients = new List<IPCamStreamClient>();
-            //HttpWebRequest request = HttpWebRequest.CreateHttp(hostname);
-            try { Reciever = new System.Net.Sockets.UdpClient(port); } catch { Reciever = null; }
-
+            HttpWebRequest request = HttpWebRequest.CreateHttp(hostname);
+            try
+            {
+                WebResponse = request.GetResponse();
+                requestStream = WebResponse.GetResponseStream();
+            }
+            catch { }
             currentBlock = new byte[0];
         }
 
@@ -276,19 +261,17 @@ namespace CashCam.Stream
         {
             StopClients();
 
-            try { Reciever.Close(); } catch { }
-            //try { requestStream?.Close(); } catch { }
-            //try { WebResponse?.Close(); } catch { }
-            // requestStream = null;
-            // WebResponse = null;
-            Reciever = null;
+            try { requestStream?.Close(); } catch { }
+            try { WebResponse?.Close(); } catch { }
+            requestStream = null;
+            WebResponse = null;
         }
 
         private void StopClients()
         {
             if (clients != null)
                 foreach (IPCamStreamClient client in clients)
-                    try { client.ClientStream.Response.Close(); } catch { }
+                    try { client.ClientStream.Response.OutputStream.Close(); } catch { }
         }
     }
 }

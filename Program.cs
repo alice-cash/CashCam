@@ -307,7 +307,7 @@ namespace CashCam
         private static ConsoleResponse QuitConsoleFunction(string[] arguments)
         {
             ThreadsRunning = false;
-            return ConsoleResponse.NewSucess("Terminating.");
+            return ConsoleResponse.Succeeded("Terminating.");
         }
 
         private static void _processOSInit()

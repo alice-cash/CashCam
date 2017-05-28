@@ -66,6 +66,7 @@
   <ItemGroup>
     <Compile Include="Files\DiskController.cs" />
     <Compile Include="Files\DiskManager.cs" />
+    <Compile Include="HTTP\StreamControl.cs" />
     <Compile Include="HTTP\TemplateProcessor.cs" />
     <Compile Include="HTTP\WebClient.cs" />
     <Compile Include="HTTP\WebServer.cs" />
@@ -86,6 +87,12 @@
   <ItemGroup>
     <None Include="App.config" />
     <None Include="HTTP\templates\404.template">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="HTTP\templates\control.camerafor.template">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="HTTP\templates\control.template">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="HTTP\templates\index.template">

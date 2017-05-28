@@ -1,0 +1,10 @@
+﻿<html>
+  <head>
+    <title>CashCam Camera</title>
+  </head>
+  <body>
+    <h1>Camera Control</h1>
+	<p>${ACTION}</p>
+	${control.camerafor.template}
+  </body>
+</html>

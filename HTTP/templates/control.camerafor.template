@@ -1,0 +1,1 @@
+﻿    Camera stream is ${STATUS} - ${ID} <a href='?starts=${ID}'>Start Stream</a>  <a href='?stops=${ID}'>Start Stream</a>

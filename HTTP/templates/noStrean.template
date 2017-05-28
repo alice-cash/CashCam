@@ -3,6 +3,6 @@
     <title>CashCam Camera</title>
   </head>
   <body>
-    <h1>Temporarily unavaliable</h1><br><h3> Sorry the stream for camera ${CameraID} is currently offline. Try again soon.</h3>
+    <h1>Temporarily unavailable</h1><br><h3>The stream for camera ${CameraID} is currently offline. You can try and start it by going <a href="control">here</a>.</h3>
   </body>
 </html>

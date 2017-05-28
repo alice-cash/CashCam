@@ -33,21 +33,21 @@ namespace CashCam.Modules
         private ConsoleResponse Disk(string[] arguments)
         {
             if (Program.DiskManager == null)
-                return ConsoleResponse.NewFailure("Program.DiskManager is not setup yet!");
+                return ConsoleResponse.Failed("Program.DiskManager is not setup yet!");
 
             if (arguments.Length == 0)
-                return ConsoleResponse.NewSucess(DefaultLanguage.Strings.GetString("disk_Help"));
+                return ConsoleResponse.Succeeded(DefaultLanguage.Strings.GetString("disk_Help"));
 
             switch (arguments[0])
             {
                 case "Free":
-                    return ConsoleResponse.NewSucess("Disk Free: " + Program.DiskManager.SynchronousGetDiskAvaliable().ToString());
+                    return ConsoleResponse.Succeeded("Disk Free: " + Program.DiskManager.SynchronousGetDiskAvaliable().ToString());
                 case "Limit":
-                    return ConsoleResponse.NewSucess("Disk Limit: " + Program.DiskManager.UsageLimit.ToString());
+                    return ConsoleResponse.Succeeded("Disk Limit: " + Program.DiskManager.UsageLimit.ToString());
 
             }
 
-            return ConsoleResponse.NewSucess(DefaultLanguage.Strings.GetString("disk_Help"));
+            return ConsoleResponse.Succeeded(DefaultLanguage.Strings.GetString("disk_Help"));
 
         }
 

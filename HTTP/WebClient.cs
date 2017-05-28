@@ -35,6 +35,10 @@ namespace CashCam.HTTP
             {
                 ServeStream();
             }
+            else if (context.Request.Url.LocalPath == "/control")
+            {
+                ServeControl();
+            }
             else
             {
                 Serve404();
@@ -53,6 +57,20 @@ namespace CashCam.HTTP
                     {"URI" , ()=>{return context.Request.Url.LocalPath; }}
                 }));
 
+            try
+            {
+                context.Response.ContentLength64 = buffer.Length;
+                context.Response.OutputStream.Write(buffer, 0, buffer.Length);
+            }
+            finally
+            {
+                context.Response.OutputStream.Close();
+            }
+        }
+
+        private void ServeControl()
+        {
+            byte[] buffer = Encoding.UTF8.GetBytes(StreamControl.GetPage(context));
             try
             {
                 context.Response.ContentLength64 = buffer.Length;
