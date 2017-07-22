@@ -36,6 +36,7 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using Mono.Unix;
 using CashCam.Stream;
+using CashCam.HTTP;
 
 namespace CashCam
 {
@@ -49,12 +50,14 @@ namespace CashCam
         private static CashLib.Threading.Thread SchedulerThread;
         private static CashLib.Threading.Thread CameraThread;
         private static CashLib.Threading.Thread DiskThread;
-        private static CashLib.Threading.Thread WebThread;
+        private static CashLib.Threading.Thread WebListenThread;
+        private static CashLib.Threading.Thread WebClientThread;
         private static CashLib.Tasks.Scheduler Scheduler;
 
         public static DiskManager DiskManager;
 
         public static CameraManager CameraManager;
+        public static WebClientManager WebClientManager;
 
         //public static IPCamStreamRepeater CameraRepater;
 
@@ -280,19 +283,26 @@ namespace CashCam
             CameraManager = new CameraManager();
             CameraThread.AddTask(CameraManager);
 
-            WebThread = new CashLib.Threading.Thread("WebThread");
-            WebThread.AddTask(new HTTP.WebServer());
-            //WebThread.AddTask(new IPCamStreamRepeater());
+
+            WebClientThread = new CashLib.Threading.Thread("WebClientThread");
+            WebClientManager = new WebClientManager();
+            WebClientThread.AddTask(WebClientManager);
+
+            WebListenThread = new CashLib.Threading.Thread("WebListenThread");
+            WebListenThread.AddTask(new WebServer());
+
 
             //SchedulerThread.Start();
             CameraThread.Start();
             DiskThread.Start();
-            WebThread.Start();
+            WebListenThread.Start();
+            WebClientThread.Start();
 
             //ThreadsStopped += SchedulerThread.Stop;
             ThreadsStopped += CameraThread.Stop;
             ThreadsStopped += DiskThread.Stop;
-            ThreadsStopped += WebThread.Stop;
+            ThreadsStopped += WebListenThread.Stop;
+            ThreadsStopped += WebClientThread.Stop;
         }
 
         private static void SetupQuitFunction()

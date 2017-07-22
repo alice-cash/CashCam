@@ -11,13 +11,14 @@ namespace CashCam.HTTP
 {
     class WebClient
     {
-        HttpListenerContext context;
+
+        public HttpListenerContext Context;
         bool isDone;
         bool chunkEnabled;
 
         public WebClient(HttpListenerContext context)
         {
-            this.context = context;
+            this.Context = context;
             isDone = false;
             chunkEnabled = false;
         }
@@ -27,15 +28,15 @@ namespace CashCam.HTTP
         {
             if (isDone) return true;
 
-            if (context.Request.Url.LocalPath == "/")
+            if (Context.Request.Url.LocalPath == "/")
             {
                 ServeRoot();
             }
-            else if (context.Request.Url.LocalPath == "/stream")
+            else if (Context.Request.Url.LocalPath == "/stream")
             {
                 ServeStream();
             }
-            else if (context.Request.Url.LocalPath == "/control")
+            else if (Context.Request.Url.LocalPath == "/control")
             {
                 ServeControl();
             }
@@ -49,37 +50,25 @@ namespace CashCam.HTTP
 
         private void ServeRoot()
         {
-
-
-            //byte[] buffer = Encoding.UTF8.GetBytes("<html><head><title>CashCam Camera</title></head><body><a href='/stream'>/stream</a></body></html>");
             byte[] buffer = Encoding.UTF8.GetBytes(TemplateProcessor.Process(Environment.CurrentDirectory + "\\HTTP\\templates\\index.template", new Dictionary<string, Func<string>>()
                 {
-                    {"URI" , ()=>{return context.Request.Url.LocalPath; }}
+                    {"URI" , ()=>{return Context.Request.Url.LocalPath; }}
                 }));
 
-            try
-            {
-                context.Response.ContentLength64 = buffer.Length;
-                context.Response.OutputStream.Write(buffer, 0, buffer.Length);
-            }
-            finally
-            {
-                context.Response.OutputStream.Close();
-            }
+    
+            Context.Response.ContentLength64 = buffer.Length;
+            WriteData(buffer, buffer.Length);
+            Context.Response.OutputStream.Close();
+            
         }
 
         private void ServeControl()
         {
-            byte[] buffer = Encoding.UTF8.GetBytes(StreamControl.GetPage(context));
-            try
-            {
-                context.Response.ContentLength64 = buffer.Length;
-                context.Response.OutputStream.Write(buffer, 0, buffer.Length);
-            }
-            finally
-            {
-                context.Response.OutputStream.Close();
-            }
+            byte[] buffer = Encoding.UTF8.GetBytes(StreamControl.GetPage(Context));
+            Context.Response.ContentLength64 = buffer.Length;
+            WriteData(buffer, buffer.Length);
+            Context.Response.OutputStream.Close();
+          
         }
 
         private void ServeStream()
@@ -94,26 +83,25 @@ namespace CashCam.HTTP
 
                     if (Program.CameraManager.GetGamera(0) != null && Program.CameraManager.GetGamera(0).StreamEnabled())
                     {
-                        context.Response.ContentType = "application/ogg";
-                        context.Response.SendChunked = true;
-                        context.Response.KeepAlive = true;
-                        Program.CameraManager.GetGamera(0).StreamTask.Repeater.AddStream(context);
+                        Context.Response.ContentType = "application/ogg";
+                        Context.Response.SendChunked = true;
+                        Context.Response.KeepAlive = true;
+                        Program.CameraManager.GetGamera(0).StreamTask.Repeater.AddStream(this);
                     }
                     else
                     {
                         byte[] buffer = Encoding.UTF8.GetBytes(TemplateProcessor.Process(Environment.CurrentDirectory + "\\HTTP\\templates\\noStrean.template", new Dictionary<string, Func<string>>()
                         {
-                            {"URI" , ()=>{return context.Request.Url.LocalPath; }},
+                            {"URI" , ()=>{return Context.Request.Url.LocalPath; }},
                             {"CameraID" , ()=>{return "0"; }}
                         }));
 
-                        context.Response.StatusCode = 404;
-                        context.Response.ContentLength64 = buffer.Length;
-                        context.Response.OutputStream.Write(buffer, 0, buffer.Length);
-                        context.Response.OutputStream.Close();
+                        Context.Response.StatusCode = 404;
+                        Context.Response.ContentLength64 = buffer.Length;
+                        WriteData(buffer, buffer.Length);
+                        Context.Response.OutputStream.Close();
 
                     }
-
                 }
             }
             finally
@@ -126,18 +114,24 @@ namespace CashCam.HTTP
             //byte[] buffer = Encoding.UTF8.GetBytes("<html><head><title>CashCam Camera</title></head><body>404 file not found</body></html>");
             byte[] buffer = Encoding.UTF8.GetBytes(TemplateProcessor.Process(Environment.CurrentDirectory + "\\HTTP\\templates\\404.template", new Dictionary<string, Func<string>>()
                 {
-                    {"URI" , ()=>{return context.Request.Url.LocalPath; }}
+                    {"URI" , ()=>{return Context.Request.Url.LocalPath; }}
                 }));
+   
+            Context.Response.StatusCode = 404;
+            Context.Response.ContentLength64 = buffer.Length;
+            WriteData(buffer, buffer.Length);
+            Context.Response.OutputStream.Close();
+            
+        }
+
+        public bool WriteData(byte[] data, int length)
+        {
             try
             {
-                context.Response.StatusCode = 404;
-                context.Response.ContentLength64 = buffer.Length;
-                context.Response.OutputStream.Write(buffer, 0, buffer.Length);
+                Context.Response.OutputStream.Write(data, 0, length);
             }
-            finally
-            {
-                context.Response.OutputStream.Close();
-            }
+            catch { return false; }
+            return true;
         }
     }
 }

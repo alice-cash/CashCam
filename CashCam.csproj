@@ -69,6 +69,7 @@
     <Compile Include="HTTP\StreamControl.cs" />
     <Compile Include="HTTP\TemplateProcessor.cs" />
     <Compile Include="HTTP\WebClient.cs" />
+    <Compile Include="HTTP\WebClientManager.cs" />
     <Compile Include="HTTP\WebServer.cs" />
     <Compile Include="Modules\Debugging.cs" />
     <Compile Include="Modules\Functions.cs" />

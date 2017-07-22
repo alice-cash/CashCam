@@ -8,6 +8,7 @@ using System.IO;
 using System.Net;
 using CashCam.Module;
 using CashLib.Collection;
+using WebClient = CashCam.HTTP.WebClient;
 
 namespace CashCam.Stream
 {
@@ -19,6 +20,7 @@ namespace CashCam.Stream
         System.IO.Stream requestStream;
         byte[] initalHeader;
         int HeaderState = 0;
+        bool HeaderReady = false;
 
         byte[] currentBlock;
         private IPCamStreamTask iPCamStreamTask;
@@ -44,16 +46,16 @@ namespace CashCam.Stream
             readThread.Start();
         }
 
-        public void AddStream(HttpListenerContext stream)
+        public void AddStream(WebClient client)
         {
-            IPCamStreamClient client = new IPCamStreamClient(stream);
+            IPCamStreamClient streamClient = new IPCamStreamClient(client);
 
             try
             {
-                ClientSendHeaderCheck(client);
+                ClientSendHeaderCheck(streamClient);
             }
             catch { return; }
-            clients.Add(client);
+            clients.Add(streamClient);
         }
 
         public void RunTask()
@@ -71,7 +73,6 @@ namespace CashCam.Stream
                     byte[] data = ReadData.Pop();
 
                     SentToClients(data);
-                    // Console.WriteLine("OUT");
                 }
             }
 
@@ -80,16 +81,18 @@ namespace CashCam.Stream
 
         private bool HeaderCheck(byte[] data)
         {
-            if (HeaderState == 2) return true;
+            if (HeaderReady) return true;
 
             if (HeaderState == 0)
                 initalHeader = data;
-
-            if (HeaderState > 1)
+            else
                 initalHeader = AppendData(initalHeader, data);
 
             HeaderState++;
-            return false;
+            
+            if (HeaderState == 2) HeaderReady = true;
+
+            return HeaderReady;
         }
 
 
@@ -108,7 +111,7 @@ namespace CashCam.Stream
                             if (count == 0) continue;
 
 
-                            data = TryGetBlock(data);
+                            data = TryGetBlock(data, count);
 
                             if (data.Length == 0) continue;
 
@@ -119,7 +122,7 @@ namespace CashCam.Stream
                             {
                                 ReadData.Push(data);
                             }
-                            //Console.WriteLine("IN");
+                            
                         }
                         catch { }
                     }
@@ -130,11 +133,11 @@ namespace CashCam.Stream
         }
 
 
-        private byte[] TryGetBlock(byte[] data)
+        private byte[] TryGetBlock(byte[] data, int count)
         {
             //byte[] data = new byte[128];
             //int count = requestStream.Read(data, 0, data.Length);
-            int count = data.Length;
+            //int count = data.Length;
             byte[] returnDataBlock;
 
             if (count == 0)
@@ -158,26 +161,6 @@ namespace CashCam.Stream
             Array.Copy(currentBlock, HeaderPos, tmpBlock, 0, currentBlock.Length - HeaderPos);
             currentBlock = tmpBlock;
 
-            //Console.WriteLine("========" + (returnDataBlock.Length + HeaderPos) + "================================================");
-            //Console.WriteLine(BitConverter.ToString(workingBlock).Replace("-", ""));
-
-            string s = ASCIIEncoding.ASCII.GetString(returnDataBlock, 0, returnDataBlock.Length);
-            var sb = new StringBuilder();
-
-            foreach (char c in s)
-            {
-                if (32 <= c && c <= 126)
-                {
-                    sb.Append(c);
-                }
-                else
-                {
-                    sb.Append(".");
-                }
-            }
-            Console.WriteLine(sb.ToString().Substring(0, sb.ToString().Length < 512 ? sb.ToString().Length : 512));
-
-            // return the previously clipped data
             return returnDataBlock;
         }
 
@@ -186,29 +169,33 @@ namespace CashCam.Stream
         {
             List<IPCamStreamClient> toRemove = new List<IPCamStreamClient>();
 
+
             foreach (IPCamStreamClient client in clients)
             {
                 try
                 {
                     if (ClientSendHeaderCheck(client))
                     {
-                        client.ClientStream.Response.OutputStream.Write(data, 0, data.Length);
-                        client.ClientStream.Response.OutputStream.Flush();
+                        client.WebClient.WriteData(data, data.Length);
                     }
-
                 }
-                catch { toRemove.Add(client); }
+                catch (Exception e) {
+                    toRemove.Add(client);
+                }
             }
             foreach (IPCamStreamClient client in toRemove)
+            {
                 clients.Remove(client);
+            }
         }
 
         private bool ClientSendHeaderCheck(IPCamStreamClient client)
         {
             if (client.SentHeader) return true;
-            if (HeaderState != 2) return false;
+            if (!HeaderReady) return false;
 
-            client.ClientStream.Response.OutputStream.Write(initalHeader, 0, initalHeader.Length);
+            client.WebClient.WriteData(initalHeader, initalHeader.Length);
+
             client.SentHeader = true;
 
             return true;
