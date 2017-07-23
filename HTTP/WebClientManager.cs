@@ -47,7 +47,7 @@ namespace CashCam.HTTP
 
         }
 
-        public void Stop()
+        public void Stop(bool force)
         {
 
         }

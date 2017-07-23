@@ -67,7 +67,7 @@ namespace CashCam
         /// wish to kill the appliication.
         /// </summary>
         public static bool ThreadsRunning { get; set; }
-        public static Action ThreadsStopped;
+        public static Action<int> ThreadsStopped;
         public static Action ProgramEnding;
 
         public static OS CurrentOS { get; private set; }
@@ -102,7 +102,7 @@ namespace CashCam
 
             ProgramEnding?.Invoke();
 
-            ThreadsStopped?.Invoke();
+            ThreadsStopped?.Invoke(5);
         }   
 
         private static void ConsoleLoop()

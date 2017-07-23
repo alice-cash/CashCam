@@ -19,12 +19,12 @@ namespace CashCam.Stream
 {
     class IPCamStreamTask
     {
-        Process ffmpegProcess;
+        Process encoderProcess;
         public int ID { get; private set; }
 
         public IPCamStreamRepeater Repeater { get; private set; }
 
-        public bool IsRunning { get { return ffmpegProcess != null && !ffmpegProcess.HasExited; } }
+        public bool IsRunning { get { return encoderProcess != null && !encoderProcess.HasExited; } }
 
         private string hostname;
         private int port;
@@ -51,14 +51,13 @@ namespace CashCam.Stream
                     throw new LogicException(string.Format("{0} is not a boolean variable!", Variables.V_camera_stream_enabled));
                 if (variable.Value)
                 {
-                   // if(ffmpegProcess != null && !ffmpegProcess.HasExited) ffmpegProcess.StandardInput.Write("++++++++++++++++++++++++++++++++++++++++++");
-                    if ((ffmpegProcess == null || ffmpegProcess.HasExited) && Program.ThreadsRunning)
+                    if ((encoderProcess == null || encoderProcess.HasExited) && Program.ThreadsRunning)
                         StartStream(Console.GetValue(string.Format(Variables.V_camera_url, ID)).Value,
                             hostname);
                 }
                 else
                 {
-                    if ((ffmpegProcess != null && !ffmpegProcess.HasExited) && Program.ThreadsRunning)
+                    if ((encoderProcess != null && !encoderProcess.HasExited) && Program.ThreadsRunning)
                     {
                         Console.WriteLine("Killing camera {0}", ID);
                         Terminate();
@@ -69,15 +68,26 @@ namespace CashCam.Stream
 
         internal void Terminate()
         {
-            Repeater?.Stop();
-            if (ffmpegProcess != null && !ffmpegProcess.HasExited)
+            Repeater?.Stop(true);
+            if (encoderProcess != null && !encoderProcess.HasExited)
             {
-                ffmpegProcess.StandardInput.WriteLine("q");
-                if (!ffmpegProcess.WaitForExit(5000))
+                encoderProcess.StandardInput.WriteLine("\x3");
+                encoderProcess.CloseMainWindow();
+
+                if (Program.CurrentOS == OS.Linux)
+                {
+                    Syscall.kill(encoderProcess.Id, Signum.SIGTERM);
+                    if (!encoderProcess.WaitForExit(5000))
+                    {
+                        Console.WriteLine("Camera {0} did not close after 5 seconds, forcefully terminating!", ID);
+                        Syscall.kill(encoderProcess.Id, Signum.SIGKILL);
+                    }
+                } else if (!encoderProcess.WaitForExit(5000))
                 {
                     Console.WriteLine("Camera {0} did not close after 5 seconds, forcefully terminating!", ID);
-                    ffmpegProcess.Kill();
+                    encoderProcess.Kill();
                 }
+
             }
         }
 
@@ -87,36 +97,36 @@ namespace CashCam.Stream
             Debugging.DebugLog(Debugging.DebugLevel.Info, "Starting Camera Sttram" + ID);
 
             Debugging.DebugLog(Debugging.DebugLevel.Debug1, "Executing: " +
-                Console.GetValue(Variables.V_ffmpeg_path).Value + " " + 
+                Console.GetValue(Variables.V_encoder_path).Value + " " + 
                 String.Format(Console.GetValue(string.Format(Variables.V_camera_stream_args, ID)).Value, URL, string.Format("{0}:{1}/camera.ogg", hostname, port)));
 
-            ffmpegProcess = new Process();
-            ffmpegProcess.StartInfo.FileName = Console.GetValue(Variables.V_ffmpeg_path).Value;
-            ffmpegProcess.StartInfo.Arguments = String.Format(Console.GetValue(string.Format(Variables.V_camera_stream_args, ID)).Value, URL, string.Format("{0}:{1}/camera.ogg", hostname, port));
-            ffmpegProcess.StartInfo.CreateNoWindow = true;
-            ffmpegProcess.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
-            ffmpegProcess.StartInfo.UseShellExecute = false;
-            ffmpegProcess.StartInfo.RedirectStandardInput = true;
-            ffmpegProcess.StartInfo.RedirectStandardError = true;
-            ffmpegProcess.StartInfo.RedirectStandardOutput = true;
+            encoderProcess = new Process();
+            encoderProcess.StartInfo.FileName = Console.GetValue(Variables.V_encoder_path).Value;
+            encoderProcess.StartInfo.Arguments = String.Format(Console.GetValue(string.Format(Variables.V_camera_stream_args, ID)).Value, URL, string.Format("{0}:{1}/camera.ogg", hostname, port));
+            encoderProcess.StartInfo.CreateNoWindow = true;
+            encoderProcess.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
+            encoderProcess.StartInfo.UseShellExecute = false;
+            encoderProcess.StartInfo.RedirectStandardInput = true;
+            encoderProcess.StartInfo.RedirectStandardError = true;
+            encoderProcess.StartInfo.RedirectStandardOutput = true;
 
-            ffmpegProcess.OutputDataReceived += (object sender, DataReceivedEventArgs e) => {
+            encoderProcess.OutputDataReceived += (object sender, DataReceivedEventArgs e) => {
                 Debugging.DebugLog(Debugging.DebugLevel.Debug3, e.Data);
             };
-            ffmpegProcess.ErrorDataReceived += (object sender, DataReceivedEventArgs e) => {
+            encoderProcess.ErrorDataReceived += (object sender, DataReceivedEventArgs e) => {
                 Debugging.DebugLog(Debugging.DebugLevel.Debug3, e.Data);
             };
 
-            ffmpegProcess.Start();
-            ffmpegProcess.BeginErrorReadLine();
-            ffmpegProcess.BeginOutputReadLine();
+            encoderProcess.Start();
+            encoderProcess.BeginErrorReadLine();
+            encoderProcess.BeginOutputReadLine();
 
         }
 
 
         /// <summary>
         /// Extracts the URL from the provided file path. 
-        /// Windows version of FileInfo may not like the ffmpeg filenames so this
+        /// Windows version of FileInfo may not like the encoder filenames so this
         /// prevents exceptions
         /// </summary>
         /// <param name="file"></param>

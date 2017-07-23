@@ -54,7 +54,7 @@ namespace CashCam.Stream
             Program.ProgramEnding += KillCameras;
         }
 
-        public void Stop()
+        public void Stop(bool force)
         {
             KillCameras();
         }

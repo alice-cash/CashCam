@@ -37,12 +37,12 @@ namespace CashCam.HTTP
             _listener.Start();
         }
 
-        public void Stop()
+        public void Stop(bool force)
         {
             if (_listener.IsListening)
             {
                 _listener.Stop();
-            }
+            }            
         }
     }
 }

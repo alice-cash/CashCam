@@ -55,7 +55,7 @@ namespace CashCam.Files
             Program.DiskManager = Manager;
         }
 
-        public void Stop()
+        public void Stop(bool force)
         {
 
         }

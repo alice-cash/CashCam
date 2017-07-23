@@ -61,7 +61,7 @@ namespace CashCam.Stream
         public void RunTask()
         {
             if (!iPCamStreamTask.Parent.StreamEnabled())
-            { Stop(); return; }
+            { Stop(false); return; }
             if (WebResponse == null || requestStream == null || !requestStream.CanRead)
             { Start(); return; }
             if (!requestStream.CanRead) return;
@@ -179,7 +179,7 @@ namespace CashCam.Stream
                         client.WebClient.WriteData(data, data.Length);
                     }
                 }
-                catch (Exception e) {
+                catch {
                     toRemove.Add(client);
                 }
             }
@@ -244,7 +244,7 @@ namespace CashCam.Stream
             currentBlock = new byte[0];
         }
 
-        public void Stop()
+        public void Stop(bool force)
         {
             StopClients();
 

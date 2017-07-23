@@ -13,9 +13,9 @@ namespace CashCam.Modules
         private string FilenameCameras = "cameras.ini";
 
 
-        public const string V_ffmpeg_path = "FFMPEG_Path";
-        public const string V_ffmpeg_stream_args = "FFMPEG_Default_Stream_Args";
-        public const string V_ffmpeg_save_args = "FFMPEG_Default_Save_Args";
+        public const string V_encoder_path = "ENCODER_Path";
+        public const string V_encoder_stream_args = "ENCODER_Default_Stream_Args";
+        public const string V_encoder_save_args = "ENCODER_Default_Save_Args";
         public const string V_camera_save_path = "Camera_Save_Path";
         public const string V_camera_count = "Camera_Count";
         public const string V_camera_url = "Camera[{0}]_URL";
@@ -48,9 +48,9 @@ namespace CashCam.Modules
             // We have 1 camera we are saving.
             List<string> VariablesToSave = new List<string>()
             {
-                V_ffmpeg_path,
-                V_ffmpeg_stream_args,
-                V_ffmpeg_save_args,
+                V_encoder_path,
+                V_encoder_stream_args,
+                V_encoder_save_args,
                 V_camera_save_path,
             };
 
@@ -151,14 +151,14 @@ namespace CashCam.Modules
 
             Console.SetIfNotExsistValue(string.Format(V_camera_stream_args, id), new ConsoleVarable()
             {
-                Value = Console.GetValue(V_ffmpeg_stream_args).Value,
-                HelpInfo = DefaultLanguage.Strings.GetString("FFMPEG_Stream_ARGS_Help"),
+                Value = Console.GetValue(V_encoder_stream_args).Value,
+                HelpInfo = DefaultLanguage.Strings.GetString("Encoder_Stream_ARGS_Help"),
             });
 
             Console.SetIfNotExsistValue(string.Format(V_camera_save_args, id), new ConsoleVarable()
             {
-                Value = Console.GetValue(V_ffmpeg_save_args).Value,
-                HelpInfo = DefaultLanguage.Strings.GetString("FFMPEG_Save_ARGS_Help"),
+                Value = Console.GetValue(V_encoder_save_args).Value,
+                HelpInfo = DefaultLanguage.Strings.GetString("Encoder_Save_ARGS_Help"),
             });
 
         }
@@ -175,10 +175,10 @@ namespace CashCam.Modules
 
             if (Program.CurrentOS == OS.Windows)
             {
-                Console.SetIfNotExsistValue(V_ffmpeg_path, new ConsoleVarable()
+                Console.SetIfNotExsistValue(V_encoder_path, new ConsoleVarable()
                 {
-                    Value = Environment.CurrentDirectory + "\\bin\\ffmpeg.exe",
-                    HelpInfo = DefaultLanguage.Strings.GetString("FFMPEG_Path_Help"),
+                    Value = Environment.CurrentDirectory + "\\bin\\vlc.exe",
+                    HelpInfo = DefaultLanguage.Strings.GetString("Encoder_Path_Help"),
                 });
                 Console.SetIfNotExsistValue(V_camera_save_path, new ConsoleVarable()
                 {
@@ -188,10 +188,10 @@ namespace CashCam.Modules
             }
             else
             {
-                Console.SetIfNotExsistValue(V_ffmpeg_path, new ConsoleVarable()
+                Console.SetIfNotExsistValue(V_encoder_path, new ConsoleVarable()
                 {
-                    Value = "/usr/bin/ffmpeg",
-                    HelpInfo = DefaultLanguage.Strings.GetString("FFMPEG_Path_Help"),
+                    Value = "/usr/bin/vlc",
+                    HelpInfo = DefaultLanguage.Strings.GetString("Encoder_Path_Help"),
                 });
                 Console.SetIfNotExsistValue(V_camera_save_path, new ConsoleVarable()
                 {
@@ -200,17 +200,17 @@ namespace CashCam.Modules
                 });
             }
 
-            Console.SetIfNotExsistValue(V_ffmpeg_stream_args, new ConsoleVarable()
+            Console.SetIfNotExsistValue(V_encoder_stream_args, new ConsoleVarable()
             {
-                Value = "-i {0} -an -codec:v libtheora -b:v 800k -s qpal -listen 1 -f ogg {1}",
-                HelpInfo = DefaultLanguage.Strings.GetString("FFMPEG_Stream_ARGS_Help"),
+                Value = "-I dummy {0} --sout #transcode{{vcodec=theo,vb=800,width=352,height=288,acodec=none,hurry-up}}:http{{dst={1}}}",
+                HelpInfo = DefaultLanguage.Strings.GetString("Encoder_Stream_ARGS_Help"),
             });
 
-            Console.SetIfNotExsistValue(V_ffmpeg_save_args, new ConsoleVarable()
+            Console.SetIfNotExsistValue(V_encoder_save_args, new ConsoleVarable()
             {
                 Value = "-i {0} -an -c copy -map 0 -f segment -segment_time 1800 " +
     "-segment_atclocktime 1 -segment_format mp4 -strftime 1 {1}",
-                HelpInfo = DefaultLanguage.Strings.GetString("FFMPEG_Save_ARGS_Help"),
+                HelpInfo = DefaultLanguage.Strings.GetString("Encoder_Save_ARGS_Help"),
             });
 
             SetupCamera(0);
