@@ -86,7 +86,10 @@ namespace CashCam.HTTP
                         Context.Response.ContentType = "application/ogg";
                         Context.Response.SendChunked = true;
                         Context.Response.KeepAlive = true;
-                        Program.CameraManager.GetGamera(0).StreamTask.Repeater.AddStream(this);
+                        Program.CameraManager.GetGamera(0)
+                            .StreamTask.Repeater.AddStream(
+                            new OGGStream.StreamClient(Context.Response.OutputStream)
+                           );
                     }
                     else
                     {

@@ -35,7 +35,7 @@ using CashLib;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using Mono.Unix;
-using CashCam.Stream;
+using CashCam.OGGStream;
 using CashCam.HTTP;
 
 namespace CashCam
