@@ -5,14 +5,14 @@ namespace CashCam.OGGStream
 {
     class Camera
     {
-        public IPCamSaveTask SaveTask;
-        public IPCamStreamTask StreamTask;
+        public SaveTask SaveTask;
+        public StreamTask StreamTask;
 
         public Camera(int id)
         {
             this.ID = id;
-            SaveTask = new IPCamSaveTask(id);
-            StreamTask = new IPCamStreamTask(this, id);
+            SaveTask = new SaveTask(id);
+            StreamTask = new StreamTask(this, id);
         }
 
         public bool SaveEnabled()

@@ -17,12 +17,12 @@ using CashLib.Exceptions;
 
 namespace CashCam.OGGStream
 {
-    class IPCamStreamTask
+    class StreamTask
     {
         Process encoderProcess;
         public int ID { get; private set; }
 
-        public IPCamStreamRepeater Repeater { get; private set; }
+        public StreamRepeater Repeater { get; private set; }
 
         public bool IsRunning { get { return encoderProcess != null && !encoderProcess.HasExited; } }
 
@@ -32,13 +32,13 @@ namespace CashCam.OGGStream
 
         public Camera Parent;
 
-        public IPCamStreamTask(Camera parent, int id)
+        public StreamTask(Camera parent, int id)
         {
             ID = id;
             Parent = parent;
             hostname = "127.0.0.1";
             port = r.Next(20000, 29999);
-            Repeater = new IPCamStreamRepeater(this, "http://" + hostname + ":" + port + "/camera.ogg"); //, port);
+            Repeater = new StreamRepeater(this, "http://" + hostname + ":" + port + "/camera.ogg"); //, port);
         }
 
         public void CheckTask(bool LongRun)

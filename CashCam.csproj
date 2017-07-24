@@ -79,10 +79,10 @@
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="OGGStream\Camera.cs" />
-    <Compile Include="OGGStream\IPCamStreamClient.cs" />
-    <Compile Include="OGGStream\IPCamStreamTask.cs" />
-    <Compile Include="OGGStream\IPCamStreamRepeater.cs" />
-    <Compile Include="OGGStream\IPCamSaveTask.cs" />
+    <Compile Include="OGGStream\StreamClient.cs" />
+    <Compile Include="OGGStream\StreamTask.cs" />
+    <Compile Include="OGGStream\StreamRepeater.cs" />
+    <Compile Include="OGGStream\SaveTask.cs" />
     <Compile Include="OGGStream\CameraManager.cs" />
   </ItemGroup>
   <ItemGroup>

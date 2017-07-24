@@ -13,7 +13,7 @@ using WebClient = CashCam.HTTP.WebClient;
 namespace CashCam.OGGStream
 {
 
-    class IPCamStreamRepeater : IThreadTask
+    class StreamRepeater : IThreadTask
     {
         private List<StreamClient> clients = new List<StreamClient>();
         WebResponse WebResponse;
@@ -23,7 +23,7 @@ namespace CashCam.OGGStream
         bool HeaderReady = false;
 
         byte[] currentBlock;
-        private IPCamStreamTask iPCamStreamTask;
+        private StreamTask iPCamStreamTask;
         private string hostname;
 
         private System.Threading.Thread readThread;
@@ -36,7 +36,7 @@ namespace CashCam.OGGStream
 
         }*/
 
-        public IPCamStreamRepeater(IPCamStreamTask iPCamStreamTask, string hostname)
+        public StreamRepeater(StreamTask iPCamStreamTask, string hostname)
         {
             this.iPCamStreamTask = iPCamStreamTask;
             this.hostname = hostname;
@@ -228,7 +228,7 @@ namespace CashCam.OGGStream
         {
             StopClients();
             if (WebResponse != null) WebResponse.Close();
-            //  clients = new List<IPCamStreamClient>();
+            // clients = new List<IPCamStreamClient>();
             HttpWebRequest request = HttpWebRequest.CreateHttp(hostname);
             try
             {

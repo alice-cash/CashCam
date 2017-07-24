@@ -17,12 +17,12 @@ using CashLib.Exceptions;
 
 namespace CashCam.OGGStream
 {
-    class IPCamSaveTask
+    class SaveTask
     {
         Process StreamSaveThread;
         public int ID { get; private set; }
 
-        public IPCamSaveTask(int id)
+        public SaveTask(int id)
         {
             ID = id;
         }
