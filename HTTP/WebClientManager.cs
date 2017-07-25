@@ -37,7 +37,7 @@ namespace CashCam.HTTP
                 foreach (WebClient client in toRemove)
                 {
                     clients.Remove(client);
-                    Console.WriteLine("Removed");
+                   // Console.WriteLine("Removed");
                 }
             }
         }
@@ -57,7 +57,7 @@ namespace CashCam.HTTP
         {
             lock (clients)
             {
-                Console.WriteLine("Added");
+               // Console.WriteLine("Added");
                 clients.Add(webClient);
             }
         }

@@ -88,8 +88,9 @@ namespace CashCam.HTTP
                         Context.Response.KeepAlive = true;
                         Program.CameraManager.GetGamera(0)
                             .StreamTask.Repeater.AddStream(
-                            new OGGStream.StreamClient(Context.Response.OutputStream)
-                           );
+                            new OGGStream.StreamClient(Context.Response.OutputStream, (data, offset, length) => {
+                                try { Context.Response.OutputStream.Write(data, offset, length); return true; } catch { } return false;
+                            }));
                     }
                     else
                     {

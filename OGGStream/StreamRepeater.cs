@@ -167,16 +167,10 @@ namespace CashCam.OGGStream
 
             foreach (StreamClient client in clients)
             {
-                try
-                {
-                    if (ClientSendHeaderCheck(client))
-                    {
-                        client.ClientStream.Write(data, 0, data.Length);
-                    }
-                }
-                catch {
-                    toRemove.Add(client);
-                }
+
+                if (ClientSendHeaderCheck(client))
+                    if(!client.Write(data, 0, data.Length))
+                        toRemove.Add(client);               
             }
             foreach (StreamClient client in toRemove)
             {
@@ -189,7 +183,7 @@ namespace CashCam.OGGStream
             if (client.SentHeader) return true;
             if (!HeaderReady) return false;
 
-            client.ClientStream.Write(initalHeader, 0, initalHeader.Length);
+            client.Write(initalHeader, 0, initalHeader.Length);
 
             client.SentHeader = true;
 
@@ -253,7 +247,7 @@ namespace CashCam.OGGStream
         {
             if (clients != null)
                 foreach (StreamClient client in clients)
-                    try { client.ClientStream.Close(); } catch { }
+                    try { client.Stream.Close(); } catch { }
         }
     }
 }

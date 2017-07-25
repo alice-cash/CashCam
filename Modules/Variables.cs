@@ -15,12 +15,10 @@ namespace CashCam.Modules
 
         public const string V_encoder_path = "ENCODER_Path";
         public const string V_encoder_stream_args = "ENCODER_Default_Stream_Args";
-        public const string V_encoder_save_args = "ENCODER_Default_Save_Args";
         public const string V_camera_save_path = "Camera_Save_Path";
         public const string V_camera_count = "Camera_Count";
         public const string V_camera_url = "Camera[{0}]_URL";
         public const string V_camera_save_format = "Camera[{0}]_Save_Format";
-        public const string V_camera_save_args = "Camera[{0}]_Save_Args";
         public const string V_camera_stream_args = "Camera[{0}]_Stream_Args";
         public const string V_camera_enabled = "Camera[{0}]_Enabled";
         public const string V_camera_stream_enabled = "Camera[{0}]_Stream_Enabled";
@@ -50,7 +48,6 @@ namespace CashCam.Modules
             {
                 V_encoder_path,
                 V_encoder_stream_args,
-                V_encoder_save_args,
                 V_camera_save_path,
             };
 
@@ -72,7 +69,6 @@ namespace CashCam.Modules
                 {
                     string.Format(V_camera_url,id),
                     string.Format(V_camera_stream_args,id),
-                    string.Format(V_camera_save_args,id),
                     string.Format(V_camera_save_format,id),
                     string.Format(V_camera_enabled,id),
                     string.Format(V_camera_stream_enabled,id),
@@ -127,7 +123,7 @@ namespace CashCam.Modules
 
             Console.SetIfNotExsistValue(string.Format(V_camera_url, id), new ConsoleVarable()
             {
-                Value = "rtsp://10.0.0.49/live1.264",
+                Value = "rtsp://10.0.0.254/live1.264",
                 HelpInfo = DefaultLanguage.Strings.GetString("Camera_URL_Help"),
             });
 
@@ -135,7 +131,7 @@ namespace CashCam.Modules
             {
                 Console.SetIfNotExsistValue(string.Format(V_camera_save_format, id), new ConsoleVarable()
                 {
-                    Value = "%Y-%m-%d-%H_%M_%S.mp4",
+                    Value = "yyyy-MM-dd-HH-MM-ss.ogg",
                     HelpInfo = DefaultLanguage.Strings.GetString("Camera_SAVE_FORMAT_Help"),
                 });
             }
@@ -143,7 +139,7 @@ namespace CashCam.Modules
             {
                 Console.SetIfNotExsistValue(string.Format(V_camera_save_format, id), new ConsoleVarable()
                 {
-                    Value = "%Y-%m-%d-%H:%M:%S.mp4",
+                    Value = "yyyy-MM-dd-HH:MM:ss.\\o\\g\\g",
                     HelpInfo = DefaultLanguage.Strings.GetString("Camera_SAVE_FORMAT_Help"),
                 });
             }
@@ -155,11 +151,6 @@ namespace CashCam.Modules
                 HelpInfo = DefaultLanguage.Strings.GetString("Encoder_Stream_ARGS_Help"),
             });
 
-            Console.SetIfNotExsistValue(string.Format(V_camera_save_args, id), new ConsoleVarable()
-            {
-                Value = Console.GetValue(V_encoder_save_args).Value,
-                HelpInfo = DefaultLanguage.Strings.GetString("Encoder_Save_ARGS_Help"),
-            });
 
         }
 
@@ -202,17 +193,11 @@ namespace CashCam.Modules
 
             Console.SetIfNotExsistValue(V_encoder_stream_args, new ConsoleVarable()
             {
-                Value = "-I dummy {0} --sout #transcode{{vcodec=theo,vb=800,width=352,height=288,acodec=none,hurry-up}}:http{{dst={1}}}",
+                Value = "-I dummy {0} --sout #transcode{{vcodec=theo,acodec=none,hurry-up}}:http{{dst={1}}}",
                 HelpInfo = DefaultLanguage.Strings.GetString("Encoder_Stream_ARGS_Help"),
             });
 
-            Console.SetIfNotExsistValue(V_encoder_save_args, new ConsoleVarable()
-            {
-                Value = "-i {0} -an -c copy -map 0 -f segment -segment_time 1800 " +
-    "-segment_atclocktime 1 -segment_format mp4 -strftime 1 {1}",
-                HelpInfo = DefaultLanguage.Strings.GetString("Encoder_Save_ARGS_Help"),
-            });
-
+  
             SetupCamera(0);
 
         }

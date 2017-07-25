@@ -88,6 +88,11 @@ namespace CashCam.Files
             {
                 list.AddRange(new DirectoryInfo(string.Format(Console.GetValue(Variables.V_camera_save_path).Value, id)).GetFiles());
             }
+            if (list.Count == 0)
+            {
+                Debugging.DebugLog(Debugging.DebugLevel.Message, "No files to remove!");
+                return;
+            }
 
             FileInfo oldest = list.OrderBy(f => f.CreationTime).First();
 
